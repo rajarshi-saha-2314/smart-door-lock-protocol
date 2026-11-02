@@ -1,0 +1,103 @@
+(* =====================================================================
+   Offline password guessing with a STOLEN SMART DEVICE - protocol AS BUILT (D1).
+
+   The attacker gets everything stored on the honest user's device {B, TID, r, Q_AS}
+   and sees every login on the public channel; it does not know PW.
+   The fuzzy verifier V = h(h(ID||RPW)) mod n0 is NOT given to the attacker: a symbolic
+   model cannot express "mod n0", and a full hash would be a perfect verifier. V's
+   resistance (about 1/n0 of all guesses match) is argued separately and demonstrated
+   by attacks/stolen_card.py. This file checks that the protocol messages add no
+   offline verifier for a password guess.
+   Expected: weak secret PW is true.
+   ===================================================================== *)
+
+free c: channel.
+free regin: channel [private].
+free regout: channel [private].
+
+type key.
+type G.
+type exponent.
+
+fun h2(bitstring, bitstring): bitstring.
+fun hA(bitstring, bitstring, bitstring): bitstring.
+fun hSK(bitstring, bitstring, bitstring, bitstring, bitstring, bitstring): bitstring.
+fun mac(bitstring, bitstring): bitstring.
+fun kdf1(bitstring, G, bitstring): key.
+fun kdfU(bitstring, bitstring): key.
+fun tokey(bitstring): key [typeConverter].
+fun aenc(bitstring, bitstring, key): bitstring.
+reduc forall m: bitstring, ad: bitstring, k: key; adec(aenc(m, ad, k), ad, k) = m.
+fun mask(bitstring, bitstring): bitstring.
+fun unmask(bitstring, bitstring): bitstring.
+equation forall a: bitstring, k: bitstring; unmask(mask(a, k), k) = a.
+equation forall b: bitstring, k: bitstring; mask(unmask(b, k), k) = b.   (* like XOR: (b xor k) xor k = b *)
+const g: G [data].
+fun exp(G, exponent): G.
+equation forall e1: exponent, e2: exponent; exp(exp(g, e1), e2) = exp(exp(g, e2), e1).
+
+const sM1: bitstring. const sM3: bitstring. const sDL: bitstring. const sU: bitstring.
+const ALLOW: bitstring. const roleF: bitstring. const v1: bitstring.
+
+free xAS: bitstring [private].
+free dAS: exponent [private].
+free PW: bitstring [private].
+free IDU: bitstring.
+free IDDL: bitstring.
+
+table users(bitstring, bitstring).
+
+weaksecret PW.
+
+let UserSession(B: bitstring, TID: bitstring, r: bitstring, QAS: G) =
+  let A = unmask(B, h2(IDU, h2(PW, r))) in
+  new N1: bitstring; new T1: bitstring; new e: exponent;
+  let E = exp(g, e) in
+  out(c, (TID, T1, IDDL, E, aenc((N1, IDU), (TID, T1, IDDL, E), kdf1(A, exp(QAS, e), (sM1, TID, T1, E)))));
+  in(c, (CU: bitstring, T3: bitstring, T4: bitstring, AuthDL: bitstring));
+  let (=ALLOW, N2: bitstring, N3: bitstring, TIDnew: bitstring, =T3) = adec(CU, (TID, IDDL), kdfU(A, (sM3, N1, T3))) in
+  let SK = hSK(N1, N2, N3, IDDL, TID, T3) in
+  if AuthDL = mac(SK, (sDL, IDDL, TID, T4)) then
+  new T5: bitstring;
+  out(c, (T5, mac(SK, (sU, TID, T5)))).
+
+let DoorSession(KDL: bitstring) =
+  in(c, (TID: bitstring, T1: bitstring, =IDDL, E: G, C1: bitstring));
+  new N2: bitstring; new T2: bitstring;
+  out(c, ((TID, T1, IDDL, E, C1), N2, T2, mac(KDL, ((TID, T1, IDDL, E, C1), N2, T2, IDDL))));
+  in(c, (T3: bitstring, CDL: bitstring, CU: bitstring));
+  let (=ALLOW, SK: bitstring, role: bitstring, =T3) = adec(CDL, (IDDL, TID, N2), tokey(KDL)) in
+  new T4: bitstring;
+  out(c, (CU, T3, T4, mac(SK, (sDL, IDDL, TID, T4)))).
+
+let ServerSession =
+  in(c, ((TID: bitstring, T1: bitstring, =IDDL, E: G, C1: bitstring), N2: bitstring, T2: bitstring, Tag2: bitstring));
+  let KDL = h2(IDDL, xAS) in
+  if Tag2 = mac(KDL, ((TID, T1, IDDL, E, C1), N2, T2, IDDL)) then
+  get users(=TID, idu: bitstring) in
+  let A = hA(idu, xAS, v1) in
+  let (N1: bitstring, =idu) = adec(C1, (TID, T1, IDDL, E), kdf1(A, exp(E, dAS), (sM1, TID, T1, E))) in
+  new N3: bitstring; new TIDnew: bitstring; new T3: bitstring;
+  let SK = hSK(N1, N2, N3, IDDL, TID, T3) in
+  out(c, (T3,
+          aenc((ALLOW, SK, roleF, T3), (IDDL, TID, N2), tokey(KDL)),
+          aenc((ALLOW, N2, N3, TIDnew, T3), (TID, IDDL), kdfU(A, (sM3, N1, T3))))).
+
+let Registration =
+  in(regin, (idu: bitstring, rpw: bitstring));
+  new TID: bitstring;
+  insert users(TID, idu);
+  out(regout, (mask(hA(idu, xAS, v1), h2(idu, rpw)), TID)).
+
+process
+  out(c, exp(g, dAS));
+  (
+      Registration
+    | ( new r: bitstring;
+        out(regin, (IDU, h2(PW, r)));
+        in(regout, (B: bitstring, TID: bitstring));
+        out(c, (B, TID, r));                 (* the smart device is stolen and read out *)
+        !UserSession(B, TID, r, exp(g, dAS)) )
+    | !DoorSession(h2(IDDL, xAS))
+    | !ServerSession
+  )

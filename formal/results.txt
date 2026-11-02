@@ -1,0 +1,1007 @@
+ProVerif results - generated 2026-11-02T12:12:13Z by formal/run_proverif.sh
+Binary: /c/Users/rajar/tools/proverif/proverif2.05/proverif.exe (Proverif 2.05. Cryptographic protocol verifier, by Bruno Blanchet, Vincent Cheval, and Marc Sylvestre)
+
+=== door_lock.pv ===
+Linear part:
+exp(exp(g,e1),e2) = exp(exp(g,e2),e1)
+Completing equations...
+Completed equations:
+exp(exp(g,e1),e2) = exp(exp(g,e2),e1)
+Convergent part:
+unmask(mask(a,k),k) = a
+mask(unmask(b,k),k) = b
+Completing equations...
+Completed equations:
+mask(unmask(b,k),k) = b
+unmask(mask(a,k),k) = a
+Process 0 (that is, the initial process):
+{1}out(c, exp(g,dAS));
+{2}insert doors(IDDL);
+{3}insert doors(IDDLE);
+{4}out(c, h2(IDDLE,xAS));
+(
+    {5}let chin: channel = regUin in
+    {6}let chout: channel = regUout in
+    {7}in(chin, (idu: bitstring,rpw: bitstring));
+    {8}new TID: bitstring;
+    {9}let A: bitstring = hA(idu,xAS,v1) in
+    {10}insert users(TID,idu);
+    {11}out(chout, (mask(A,h2(idu,rpw)),TID))
+) | (
+    {12}let chin_1: channel = regEin in
+    {13}let chout_1: channel = regEout in
+    {14}in(chin_1, (idu_1: bitstring,rpw_1: bitstring));
+    {15}new TID_1: bitstring;
+    {16}let A_1: bitstring = hA(idu_1,xAS,v1) in
+    {17}insert users(TID_1,idu_1);
+    {18}out(chout_1, (mask(A_1,h2(idu_1,rpw_1)),TID_1))
+) | (
+    {19}new r: bitstring;
+    {20}out(regUin, (IDU,h2(PW,r)));
+    {21}in(regUout, (B: bitstring,TID_2: bitstring));
+    {22}!
+    {23}let r_1: bitstring = r in
+    {24}let QAS: G = exp(g,dAS) in
+    {25}in(c, iddl: bitstring);
+    {26}let A_2: bitstring = unmask(B,h2(IDU,h2(PW,r_1))) in
+    {27}new N1: bitstring;
+    {28}new T1: bitstring;
+    {29}new e: exponent;
+    {30}let E: G = exp(g,e) in
+    {31}let k1: key = kdf1(A_2,exp(QAS,e),(sM1,TID_2,T1,E)) in
+    {32}event UserStarts(IDU,iddl,N1);
+    {33}out(c, (TID_2,T1,iddl,E,aenc((N1,IDU),(TID_2,T1,iddl,E),k1)));
+    {34}in(c, (CU: bitstring,T3: bitstring,T4: bitstring,AuthDL: bitstring));
+    {35}let (=ALLOW,N2: bitstring,N3: bitstring,TIDnew: bitstring,=T3) = adec(CU,(TID_2,iddl),kdfU(A_2,(sM3,N1,T3))) in
+    {36}let SK: bitstring = hSK(N1,N2,N3,iddl,TID_2,T3) in
+    {37}event UserAuthServer(IDU,iddl,N1,SK);
+    {38}if (AuthDL = mac(SK,(sDL,iddl,TID_2,T4))) then
+    {39}event UserAcceptsKey(iddl,SK);
+    {40}new T5: bitstring;
+    {41}event UserConfirms(iddl,SK);
+    {42}out(c, (T5,mac(SK,(sU,TID_2,T5))));
+    {43}if (iddl = IDDL) then
+    {44}out(c, aenc(secretU,sSess,SK))
+) | (
+    {45}new rE: bitstring;
+    {46}out(regEin, (IDE,h2(PWE,rE)));
+    {47}in(regEout, (BE: bitstring,TIDE: bitstring));
+    {48}out(c, (BE,TIDE,rE))
+) | (
+    {49}!
+    {50}let iddl_1: bitstring = IDDL in
+    {51}let KDL: bitstring = h2(IDDL,xAS) in
+    {52}in(c, (TID_3: bitstring,T1_1: bitstring,=iddl_1,E_1: G,C1: bitstring));
+    {53}new N2_1: bitstring;
+    {54}new T2: bitstring;
+    {55}event DoorSendsM2(iddl_1,N2_1);
+    {56}out(c, ((TID_3,T1_1,iddl_1,E_1,C1),N2_1,T2,mac(KDL,((TID_3,T1_1,iddl_1,E_1,C1),N2_1,T2,iddl_1))));
+    {57}in(c, (T3_1: bitstring,CDL: bitstring,CU_1: bitstring));
+    {58}let (=ALLOW,SK_1: bitstring,role: bitstring,=T3_1) = adec(CDL,(iddl_1,TID_3,N2_1),KDL) in
+    {59}event DoorAuthServer(iddl_1,N2_1,SK_1);
+    {60}new T4_1: bitstring;
+    {61}event DoorSendsKey(iddl_1,SK_1);
+    {62}out(c, (CU_1,T3_1,T4_1,mac(SK_1,(sDL,iddl_1,TID_3,T4_1))));
+    {63}in(c, (T5_1: bitstring,AuthU: bitstring));
+    {64}if (AuthU = mac(SK_1,(sU,TID_3,T5_1))) then
+    {65}event DoorAuthUser(iddl_1,SK_1)
+) | (
+    {66}!
+    {67}let iddl_2: bitstring = IDDLE in
+    {68}let KDL_1: bitstring = h2(IDDLE,xAS) in
+    {69}in(c, (TID_4: bitstring,T1_2: bitstring,=iddl_2,E_2: G,C1_1: bitstring));
+    {70}new N2_2: bitstring;
+    {71}new T2_1: bitstring;
+    {72}event DoorSendsM2(iddl_2,N2_2);
+    {73}out(c, ((TID_4,T1_2,iddl_2,E_2,C1_1),N2_2,T2_1,mac(KDL_1,((TID_4,T1_2,iddl_2,E_2,C1_1),N2_2,T2_1,iddl_2))));
+    {74}in(c, (T3_2: bitstring,CDL_1: bitstring,CU_2: bitstring));
+    {75}let (=ALLOW,SK_2: bitstring,role_1: bitstring,=T3_2) = adec(CDL_1,(iddl_2,TID_4,N2_2),KDL_1) in
+    {76}event DoorAuthServer(iddl_2,N2_2,SK_2);
+    {77}new T4_2: bitstring;
+    {78}event DoorSendsKey(iddl_2,SK_2);
+    {79}out(c, (CU_2,T3_2,T4_2,mac(SK_2,(sDL,iddl_2,TID_4,T4_2))));
+    {80}in(c, (T5_2: bitstring,AuthU_1: bitstring));
+    {81}if (AuthU_1 = mac(SK_2,(sU,TID_4,T5_2))) then
+    {82}event DoorAuthUser(iddl_2,SK_2)
+) | (
+    {83}!
+    {84}in(c, ((TID_5: bitstring,T1_3: bitstring,iddl_3: bitstring,E_3: G,C1_2: bitstring),N2_3: bitstring,T2_2: bitstring,Tag2: bitstring));
+    {99}get doors(=iddl_3) in
+    {85}let KDL_2: bitstring = h2(iddl_3,xAS) in
+    {86}if (Tag2 = mac(KDL_2,((TID_5,T1_3,iddl_3,E_3,C1_2),N2_3,T2_2,iddl_3))) then
+    {87}event ASAuthDoor(iddl_3,N2_3);
+    {98}get users(=TID_5,idu_2: bitstring) in
+    {88}let A_3: bitstring = hA(idu_2,xAS,v1) in
+    {89}let (N1_1: bitstring,=idu_2) = adec(C1_2,(TID_5,T1_3,iddl_3,E_3),kdf1(A_3,exp(E_3,dAS),(sM1,TID_5,T1_3,E_3))) in
+    {90}event ASAuthUser(idu_2,iddl_3,N1_1);
+    {91}new N3_1: bitstring;
+    {92}new TIDnew_1: bitstring;
+    {93}new T3_3: bitstring;
+    {94}let SK_3: bitstring = hSK(N1_1,N2_3,N3_1,iddl_3,TID_5,T3_3) in
+    {95}event ServerSendsKey(iddl_3,N2_3,SK_3);
+    {96}event ServerResponds(idu_2,iddl_3,N1_1,SK_3);
+    {97}out(c, (T3_3,aenc((ALLOW,SK_3,roleF,T3_3),(iddl_3,TID_5,N2_3),KDL_2),aenc((ALLOW,N2_3,N3_1,TIDnew_1,T3_3),(TID_5,iddl_3),kdfU(A_3,(sM3,N1_1,T3_3)))))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}out(c, exp(g,dAS));
+{2}insert doors(IDDL);
+{3}insert doors(IDDLE);
+{4}out(c, h2(IDDLE,xAS));
+(
+    {5}let chin: channel = regUin in
+    {7}in(chin, (idu: bitstring,rpw: bitstring));
+    {8}new TID: bitstring;
+    {10}insert users(TID,idu);
+    {9}let A: bitstring = hA(idu,xAS,v1) in
+    {6}let chout: channel = regUout in
+    {11}out(chout, (mask(A,h2(idu,rpw)),TID))
+) | (
+    {12}let chin_1: channel = regEin in
+    {14}in(chin_1, (idu_1: bitstring,rpw_1: bitstring));
+    {15}new TID_1: bitstring;
+    {17}insert users(TID_1,idu_1);
+    {16}let A_1: bitstring = hA(idu_1,xAS,v1) in
+    {13}let chout_1: channel = regEout in
+    {18}out(chout_1, (mask(A_1,h2(idu_1,rpw_1)),TID_1))
+) | (
+    {19}new r: bitstring;
+    {20}out(regUin, (IDU,h2(PW,r)));
+    {21}in(regUout, (B: bitstring,TID_2: bitstring));
+    {22}!
+    {25}in(c, iddl: bitstring);
+    {27}new N1: bitstring;
+    {28}new T1: bitstring;
+    {29}new e: exponent;
+    {32}event UserStarts(IDU,iddl,N1);
+    {30}let E: G = exp(g,e) in
+    {23}let r_1: bitstring = r in
+    {26}let A_2: bitstring = unmask(B,h2(IDU,h2(PW,r_1))) in
+    {24}let QAS: G = exp(g,dAS) in
+    {31}let k1: key = kdf1(A_2,exp(QAS,e),(sM1,TID_2,T1,E)) in
+    {33}out(c, (TID_2,T1,iddl,E,aenc((N1,IDU),(TID_2,T1,iddl,E),k1)));
+    {34}in(c, (CU: bitstring,T3: bitstring,T4: bitstring,AuthDL: bitstring));
+    {35}let (=ALLOW,N2: bitstring,N3: bitstring,TIDnew: bitstring,=T3) = adec(CU,(TID_2,iddl),kdfU(A_2,(sM3,N1,T3))) in
+    {36}let SK: bitstring = hSK(N1,N2,N3,iddl,TID_2,T3) in
+    {37}event UserAuthServer(IDU,iddl,N1,SK);
+    {38}if (AuthDL = mac(SK,(sDL,iddl,TID_2,T4))) then
+    {39}event UserAcceptsKey(iddl,SK);
+    {40}new T5: bitstring;
+    {41}event UserConfirms(iddl,SK);
+    {42}out(c, (T5,mac(SK,(sU,TID_2,T5))));
+    {43}if (iddl = IDDL) then
+    {44}out(c, aenc(secretU,sSess,SK))
+) | (
+    {45}new rE: bitstring;
+    {46}out(regEin, (IDE,h2(PWE,rE)));
+    {47}in(regEout, (BE: bitstring,TIDE: bitstring));
+    {48}out(c, (BE,TIDE,rE))
+) | (
+    {49}!
+    {50}let iddl_1: bitstring = IDDL in
+    {52}in(c, (TID_3: bitstring,T1_1: bitstring,=iddl_1,E_1: G,C1: bitstring));
+    {53}new N2_1: bitstring;
+    {54}new T2: bitstring;
+    {55}event DoorSendsM2(iddl_1,N2_1);
+    {51}let KDL: bitstring = h2(IDDL,xAS) in
+    {56}out(c, ((TID_3,T1_1,iddl_1,E_1,C1),N2_1,T2,mac(KDL,((TID_3,T1_1,iddl_1,E_1,C1),N2_1,T2,iddl_1))));
+    {57}in(c, (T3_1: bitstring,CDL: bitstring,CU_1: bitstring));
+    {58}let (=ALLOW,SK_1: bitstring,role: bitstring,=T3_1) = adec(CDL,(iddl_1,TID_3,N2_1),KDL) in
+    {59}event DoorAuthServer(iddl_1,N2_1,SK_1);
+    {60}new T4_1: bitstring;
+    {61}event DoorSendsKey(iddl_1,SK_1);
+    {62}out(c, (CU_1,T3_1,T4_1,mac(SK_1,(sDL,iddl_1,TID_3,T4_1))));
+    {63}in(c, (T5_1: bitstring,AuthU: bitstring));
+    {64}if (AuthU = mac(SK_1,(sU,TID_3,T5_1))) then
+    {65}event DoorAuthUser(iddl_1,SK_1)
+) | (
+    {66}!
+    {67}let iddl_2: bitstring = IDDLE in
+    {69}in(c, (TID_4: bitstring,T1_2: bitstring,=iddl_2,E_2: G,C1_1: bitstring));
+    {70}new N2_2: bitstring;
+    {71}new T2_1: bitstring;
+    {72}event DoorSendsM2(iddl_2,N2_2);
+    {68}let KDL_1: bitstring = h2(IDDLE,xAS) in
+    {73}out(c, ((TID_4,T1_2,iddl_2,E_2,C1_1),N2_2,T2_1,mac(KDL_1,((TID_4,T1_2,iddl_2,E_2,C1_1),N2_2,T2_1,iddl_2))));
+    {74}in(c, (T3_2: bitstring,CDL_1: bitstring,CU_2: bitstring));
+    {75}let (=ALLOW,SK_2: bitstring,role_1: bitstring,=T3_2) = adec(CDL_1,(iddl_2,TID_4,N2_2),KDL_1) in
+    {76}event DoorAuthServer(iddl_2,N2_2,SK_2);
+    {77}new T4_2: bitstring;
+    {78}event DoorSendsKey(iddl_2,SK_2);
+    {79}out(c, (CU_2,T3_2,T4_2,mac(SK_2,(sDL,iddl_2,TID_4,T4_2))));
+    {80}in(c, (T5_2: bitstring,AuthU_1: bitstring));
+    {81}if (AuthU_1 = mac(SK_2,(sU,TID_4,T5_2))) then
+    {82}event DoorAuthUser(iddl_2,SK_2)
+) | (
+    {83}!
+    {84}in(c, ((TID_5: bitstring,T1_3: bitstring,iddl_3: bitstring,E_3: G,C1_2: bitstring),N2_3: bitstring,T2_2: bitstring,Tag2: bitstring));
+    {99}get doors(=iddl_3) in
+    {85}let KDL_2: bitstring = h2(iddl_3,xAS) in
+    {86}if (Tag2 = mac(KDL_2,((TID_5,T1_3,iddl_3,E_3,C1_2),N2_3,T2_2,iddl_3))) then
+    {87}event ASAuthDoor(iddl_3,N2_3);
+    {98}get users(=TID_5,idu_2: bitstring) in
+    {88}let A_3: bitstring = hA(idu_2,xAS,v1) in
+    {89}let (N1_1: bitstring,=idu_2) = adec(C1_2,(TID_5,T1_3,iddl_3,E_3),kdf1(A_3,exp(E_3,dAS),(sM1,TID_5,T1_3,E_3))) in
+    {90}event ASAuthUser(idu_2,iddl_3,N1_1);
+    {91}new N3_1: bitstring;
+    {92}new TIDnew_1: bitstring;
+    {93}new T3_3: bitstring;
+    {94}let SK_3: bitstring = hSK(N1_1,N2_3,N3_1,iddl_3,TID_5,T3_3) in
+    {95}event ServerSendsKey(iddl_3,N2_3,SK_3);
+    {96}event ServerResponds(idu_2,iddl_3,N1_1,SK_3);
+    {97}out(c, (T3_3,aenc((ALLOW,SK_3,roleF,T3_3),(iddl_3,TID_5,N2_3),KDL_2),aenc((ALLOW,N2_3,N3_1,TIDnew_1,T3_3),(TID_5,iddl_3),kdfU(A_3,(sM3,N1_1,T3_3)))))
+)
+
+-- Query not attacker(secretU[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 169 rules (65 with conclusion selected). Queue: 34 rules.
+400 rules inserted. Base: 264 rules (66 with conclusion selected). Queue: 84 rules.
+600 rules inserted. Base: 373 rules (78 with conclusion selected). Queue: 116 rules.
+800 rules inserted. Base: 487 rules (82 with conclusion selected). Queue: 57 rules.
+1000 rules inserted. Base: 575 rules (98 with conclusion selected). Queue: 50 rules.
+1200 rules inserted. Base: 595 rules (127 with conclusion selected). Queue: 26 rules.
+Starting query not attacker(secretU[])
+RESULT not attacker(secretU[]) is true.
+-- Query event(DoorAuthUser(IDDL[],sk)) && attacker(sk) ==> event(ServerResponds(IDE[],IDDL[],n1,sk)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 167 rules (64 with conclusion selected). Queue: 37 rules.
+400 rules inserted. Base: 266 rules (67 with conclusion selected). Queue: 80 rules.
+600 rules inserted. Base: 372 rules (78 with conclusion selected). Queue: 116 rules.
+800 rules inserted. Base: 491 rules (82 with conclusion selected). Queue: 66 rules.
+1000 rules inserted. Base: 586 rules (99 with conclusion selected). Queue: 57 rules.
+1200 rules inserted. Base: 609 rules (122 with conclusion selected). Queue: 37 rules.
+1400 rules inserted. Base: 669 rules (133 with conclusion selected). Queue: 17 rules.
+Starting query event(DoorAuthUser(IDDL[],sk)) && attacker(sk) ==> event(ServerResponds(IDE[],IDDL[],n1,sk))
+goal reachable: b-event(ServerResponds(IDE[],IDDL[],N1_2,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4))) && attacker(N1_2) && attacker(T1_4) -> event(DoorAuthUser(IDDL[],hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4))) && attacker(hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4))
+Abbreviations:
+TID_6 = TID_1[rpw_1 = h2(PWE[],rE[]),idu_1 = IDE[]]
+N2_4 = N2_1[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_1 = g,T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+T2_3 = T2[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_1 = g,T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+N3_2 = N3_1[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],g,aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g)))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_3 = g,iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+T3_4 = T3_3[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],g,aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g)))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_3 = g,iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+goal reachable: b-event(ServerResponds(IDE[],IDDL[],N1_2,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4))) && attacker(N1_2) && attacker(T1_4) && attacker(e1) -> event(DoorAuthUser(IDDL[],hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4))) && attacker(hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4))
+Abbreviations:
+TID_6 = TID_1[rpw_1 = h2(PWE[],rE[]),idu_1 = IDE[]]
+N2_4 = N2_1[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_1 = exp(g,e1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+T2_3 = T2[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_1 = exp(g,e1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+N3_2 = N3_1[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e1),aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_3 = exp(g,e1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+T3_4 = T3_3[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e1),aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_3 = exp(g,e1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+RESULT event(DoorAuthUser(IDDL[],sk)) && attacker(sk) ==> event(ServerResponds(IDE[],IDDL[],n1,sk)) is true.
+-- Query not attacker(xAS[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 169 rules (65 with conclusion selected). Queue: 34 rules.
+400 rules inserted. Base: 264 rules (66 with conclusion selected). Queue: 84 rules.
+600 rules inserted. Base: 373 rules (78 with conclusion selected). Queue: 116 rules.
+800 rules inserted. Base: 487 rules (82 with conclusion selected). Queue: 57 rules.
+1000 rules inserted. Base: 575 rules (98 with conclusion selected). Queue: 50 rules.
+1200 rules inserted. Base: 595 rules (127 with conclusion selected). Queue: 26 rules.
+Starting query not attacker(xAS[])
+RESULT not attacker(xAS[]) is true.
+-- Query not attacker(PW[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 169 rules (65 with conclusion selected). Queue: 34 rules.
+400 rules inserted. Base: 264 rules (66 with conclusion selected). Queue: 84 rules.
+600 rules inserted. Base: 373 rules (78 with conclusion selected). Queue: 116 rules.
+800 rules inserted. Base: 487 rules (82 with conclusion selected). Queue: 57 rules.
+1000 rules inserted. Base: 575 rules (98 with conclusion selected). Queue: 50 rules.
+1200 rules inserted. Base: 595 rules (127 with conclusion selected). Queue: 26 rules.
+Starting query not attacker(PW[])
+RESULT not attacker(PW[]) is true.
+-- Query not attacker(hA(IDU[],xAS[],v1)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 169 rules (65 with conclusion selected). Queue: 34 rules.
+400 rules inserted. Base: 264 rules (66 with conclusion selected). Queue: 84 rules.
+600 rules inserted. Base: 373 rules (78 with conclusion selected). Queue: 116 rules.
+800 rules inserted. Base: 487 rules (82 with conclusion selected). Queue: 57 rules.
+1000 rules inserted. Base: 575 rules (98 with conclusion selected). Queue: 50 rules.
+1200 rules inserted. Base: 595 rules (127 with conclusion selected). Queue: 26 rules.
+Starting query not attacker(hA(IDU[],xAS[],v1))
+RESULT not attacker(hA(IDU[],xAS[],v1)) is true.
+-- Query not attacker(h2(IDDL[],xAS[])) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 169 rules (65 with conclusion selected). Queue: 34 rules.
+400 rules inserted. Base: 264 rules (66 with conclusion selected). Queue: 84 rules.
+600 rules inserted. Base: 373 rules (78 with conclusion selected). Queue: 116 rules.
+800 rules inserted. Base: 487 rules (82 with conclusion selected). Queue: 57 rules.
+1000 rules inserted. Base: 575 rules (98 with conclusion selected). Queue: 50 rules.
+1200 rules inserted. Base: 595 rules (127 with conclusion selected). Queue: 26 rules.
+Starting query not attacker(h2(IDDL[],xAS[]))
+RESULT not attacker(h2(IDDL[],xAS[])) is true.
+-- Query not attacker(dAS[]) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 169 rules (65 with conclusion selected). Queue: 34 rules.
+400 rules inserted. Base: 264 rules (66 with conclusion selected). Queue: 84 rules.
+600 rules inserted. Base: 373 rules (78 with conclusion selected). Queue: 116 rules.
+800 rules inserted. Base: 487 rules (82 with conclusion selected). Queue: 57 rules.
+1000 rules inserted. Base: 575 rules (98 with conclusion selected). Queue: 50 rules.
+1200 rules inserted. Base: 595 rules (127 with conclusion selected). Queue: 26 rules.
+Starting query not attacker(dAS[])
+RESULT not attacker(dAS[]) is true.
+-- Query event(ASAuthUser(IDU[],IDDL[],n1)) ==> event(UserStarts(IDU[],IDDL[],n1)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 166 rules (64 with conclusion selected). Queue: 40 rules.
+400 rules inserted. Base: 272 rules (66 with conclusion selected). Queue: 94 rules.
+600 rules inserted. Base: 382 rules (73 with conclusion selected). Queue: 119 rules.
+800 rules inserted. Base: 521 rules (80 with conclusion selected). Queue: 92 rules.
+1000 rules inserted. Base: 639 rules (106 with conclusion selected). Queue: 72 rules.
+1200 rules inserted. Base: 713 rules (118 with conclusion selected). Queue: 58 rules.
+1400 rules inserted. Base: 762 rules (143 with conclusion selected). Queue: 28 rules.
+Starting query event(ASAuthUser(IDU[],IDDL[],n1)) ==> event(UserStarts(IDU[],IDDL[],n1))
+goal reachable: b-event(UserStarts(IDU[],iddl_4,N1_2)) && attacker(iddl_4) && b-event(UserStarts(IDU[],IDDL[],N1_3)) -> event(ASAuthUser(IDU[],IDDL[],N1_3))
+Abbreviations:
+TID_6 = TID[rpw = h2(PW[],r[]),idu = IDU[]]
+N1_3 = N1[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+N1_2 = N1[iddl = iddl_4,!1 = @sid_1,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+RESULT event(ASAuthUser(IDU[],IDDL[],n1)) ==> event(UserStarts(IDU[],IDDL[],n1)) is true.
+-- Query inj-event(DoorAuthUser(IDDL[],sk)) ==> inj-event(UserConfirms(IDDL[],sk)) || event(ServerResponds(IDE[],IDDL[],n1,sk)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 167 rules (64 with conclusion selected). Queue: 37 rules.
+400 rules inserted. Base: 266 rules (67 with conclusion selected). Queue: 80 rules.
+600 rules inserted. Base: 372 rules (78 with conclusion selected). Queue: 116 rules.
+800 rules inserted. Base: 492 rules (82 with conclusion selected). Queue: 69 rules.
+1000 rules inserted. Base: 592 rules (99 with conclusion selected). Queue: 62 rules.
+1200 rules inserted. Base: 597 rules (118 with conclusion selected). Queue: 51 rules.
+1400 rules inserted. Base: 676 rules (132 with conclusion selected). Queue: 26 rules.
+Starting query inj-event(DoorAuthUser(IDDL[],sk)) ==> inj-event(UserConfirms(IDDL[],sk)) || event(ServerResponds(IDE[],IDDL[],n1,sk))
+goal reachable: attacker(T5_3) && b-event(ServerResponds(IDE[],IDDL[],N1_2,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4))) && attacker(CU_3) && attacker(N1_2) && attacker(T1_4) -> inj-event(DoorAuthUser(IDDL[],hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ65_1)
+The 1st, 3rd, 4th, 5th hypotheses occur before the conclusion.
+The 2nd hypothesis occurs strictly before the conclusion.
+Abbreviations:
+TID_6 = TID_1[rpw_1 = h2(PWE[],rE[]),idu_1 = IDE[]]
+N2_4 = N2_1[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_1 = g,T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+T2_3 = T2[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_1 = g,T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+N3_2 = N3_1[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],g,aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g)))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_3 = g,iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+T3_4 = T3_3[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],g,aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g)))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_3 = g,iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+@occ65_1 = @occ65[AuthU = mac(hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),(sU,TID_6,T5_3)),T5_1 = T5_3,CU_1 = CU_3,CDL = aenc((ALLOW,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),roleF,T3_4),(IDDL[],TID_6,N2_4),h2(IDDL[],xAS[])),T3_1 = T3_4,C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_1 = g,T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+goal reachable: attacker(T5_3) && b-event(ServerResponds(IDE[],IDDL[],N1_2,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4))) && attacker(CU_3) && attacker(N1_2) && attacker(T1_4) && attacker(e1) -> inj-event(DoorAuthUser(IDDL[],hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ65_1)
+The 1st, 3rd, 4th, 5th, 6th hypotheses occur before the conclusion.
+The 2nd hypothesis occurs strictly before the conclusion.
+Abbreviations:
+TID_6 = TID_1[rpw_1 = h2(PWE[],rE[]),idu_1 = IDE[]]
+N2_4 = N2_1[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_1 = exp(g,e1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+T2_3 = T2[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_1 = exp(g,e1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+N3_2 = N3_1[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e1),aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_3 = exp(g,e1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+T3_4 = T3_3[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e1),aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_3 = exp(g,e1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+@occ65_1 = @occ65[AuthU = mac(hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),(sU,TID_6,T5_3)),T5_1 = T5_3,CU_1 = CU_3,CDL = aenc((ALLOW,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),roleF,T3_4),(IDDL[],TID_6,N2_4),h2(IDDL[],xAS[])),T3_1 = T3_4,C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_1 = exp(g,e1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+goal reachable: b-inj-event(UserConfirms(IDDL[],hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ41_1) && attacker(CU_3) && b-event(ServerResponds(IDU[],IDDL[],N1_2,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4))) && attacker(CU_4) -> inj-event(DoorAuthUser(IDDL[],hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ65_1)
+The 1st, 3rd hypotheses occur strictly before the conclusion.
+The 2nd, 4th hypotheses occur before the conclusion.
+Abbreviations:
+TID_6 = TID[rpw = h2(PW[],r[]),idu = IDU[]]
+N1_2 = N1[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+T1_4 = T1[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+e_1 = e[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+N2_4 = N2_1[C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+T2_3 = T2[C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+N3_2 = N3_1[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+T3_4 = T3_3[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+T4_3 = T4_1[CU_1 = CU_3,CDL = aenc((ALLOW,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),roleF,T3_4),(IDDL[],TID_6,N2_4),h2(IDDL[],xAS[])),T3_1 = T3_4,C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+TIDnew_2 = TIDnew_1[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+T5_3 = T5[AuthDL = mac(hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),(sDL,IDDL[],TID_6,T4_3)),T4 = T4_3,T3 = T3_4,CU = aenc((ALLOW,N2_4,N3_2,TIDnew_2,T3_4),(TID_6,IDDL[]),kdfU(hA(IDU[],xAS[],v1),(sM3,N1_2,T3_4))),iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+@occ65_1 = @occ65[AuthU = mac(hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),(sU,TID_6,T5_3)),T5_1 = T5_3,CU_1 = CU_4,CDL = aenc((ALLOW,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),roleF,T3_4),(IDDL[],TID_6,N2_4),h2(IDDL[],xAS[])),T3_1 = T3_4,C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+@occ41_1 = @occ41[AuthDL = mac(hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),(sDL,IDDL[],TID_6,T4_3)),T4 = T4_3,T3 = T3_4,CU = aenc((ALLOW,N2_4,N3_2,TIDnew_2,T3_4),(TID_6,IDDL[]),kdfU(hA(IDU[],xAS[],v1),(sM3,N1_2,T3_4))),iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+RESULT inj-event(DoorAuthUser(IDDL[],sk)) ==> inj-event(UserConfirms(IDDL[],sk)) || event(ServerResponds(IDE[],IDDL[],n1,sk)) is true.
+-- Query inj-event(UserAuthServer(IDU[],d,n1,sk)) ==> inj-event(ServerResponds(IDU[],d,n1,sk)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 170 rules (64 with conclusion selected). Queue: 36 rules.
+400 rules inserted. Base: 274 rules (66 with conclusion selected). Queue: 80 rules.
+600 rules inserted. Base: 377 rules (77 with conclusion selected). Queue: 116 rules.
+800 rules inserted. Base: 492 rules (81 with conclusion selected). Queue: 69 rules.
+1000 rules inserted. Base: 591 rules (102 with conclusion selected). Queue: 57 rules.
+1200 rules inserted. Base: 609 rules (125 with conclusion selected). Queue: 34 rules.
+1400 rules inserted. Base: 703 rules (135 with conclusion selected). Queue: 5 rules.
+Starting query inj-event(UserAuthServer(IDU[],d,n1,sk)) ==> inj-event(ServerResponds(IDU[],d,n1,sk))
+goal reachable: b-inj-event(ServerResponds(IDU[],IDDLE[],N1_2,hSK(N1_2,N2_4,N3_2,IDDLE[],TID_6,T3_4)),@occ96_1) && attacker(N2_4) && attacker(T2_3) && attacker(T4_3) && attacker(AuthDL_1) -> inj-event(UserAuthServer(IDU[],IDDLE[],N1_2,hSK(N1_2,N2_4,N3_2,IDDLE[],TID_6,T3_4)),@occ37_1)
+The 1st hypothesis occurs strictly before the conclusion.
+The 2nd, 3rd, 4th, 5th hypotheses occur before the conclusion.
+Abbreviations:
+TID_6 = TID[rpw = h2(PW[],r[]),idu = IDU[]]
+N1_2 = N1[iddl = IDDLE[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+T1_4 = T1[iddl = IDDLE[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+e_1 = e[iddl = IDDLE[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+N3_2 = N3_1[idu_2 = IDU[],Tag2 = mac(h2(IDDLE[],xAS[]),((TID_6,T1_4,IDDLE[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDLE[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDLE[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDLE[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDLE[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+T3_4 = T3_3[idu_2 = IDU[],Tag2 = mac(h2(IDDLE[],xAS[]),((TID_6,T1_4,IDDLE[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDLE[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDLE[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDLE[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDLE[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+TIDnew_2 = TIDnew_1[idu_2 = IDU[],Tag2 = mac(h2(IDDLE[],xAS[]),((TID_6,T1_4,IDDLE[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDLE[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDLE[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDLE[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDLE[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+@occ37_1 = @occ37[AuthDL = AuthDL_1,T4 = T4_3,T3 = T3_4,CU = aenc((ALLOW,N2_4,N3_2,TIDnew_2,T3_4),(TID_6,IDDLE[]),kdfU(hA(IDU[],xAS[],v1),(sM3,N1_2,T3_4))),iddl = IDDLE[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+@occ96_1 = @occ96[idu_2 = IDU[],Tag2 = mac(h2(IDDLE[],xAS[]),((TID_6,T1_4,IDDLE[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDLE[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDLE[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDLE[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDLE[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+goal reachable: b-inj-event(ServerResponds(IDU[],IDDL[],N1_2,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ96_1) && attacker(T4_3) && attacker(AuthDL_1) -> inj-event(UserAuthServer(IDU[],IDDL[],N1_2,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ37_1)
+The 1st hypothesis occurs strictly before the conclusion.
+The 2nd, 3rd hypotheses occur before the conclusion.
+Abbreviations:
+TID_6 = TID[rpw = h2(PW[],r[]),idu = IDU[]]
+N1_2 = N1[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+T1_4 = T1[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+e_1 = e[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+N2_4 = N2_1[C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+T2_3 = T2[C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+N3_2 = N3_1[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+T3_4 = T3_3[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+TIDnew_2 = TIDnew_1[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+@occ37_1 = @occ37[AuthDL = AuthDL_1,T4 = T4_3,T3 = T3_4,CU = aenc((ALLOW,N2_4,N3_2,TIDnew_2,T3_4),(TID_6,IDDL[]),kdfU(hA(IDU[],xAS[],v1),(sM3,N1_2,T3_4))),iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+@occ96_1 = @occ96[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+RESULT inj-event(UserAuthServer(IDU[],d,n1,sk)) ==> inj-event(ServerResponds(IDU[],d,n1,sk)) is true.
+-- Query inj-event(DoorAuthServer(IDDL[],n2,sk)) ==> inj-event(ServerSendsKey(IDDL[],n2,sk)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 167 rules (64 with conclusion selected). Queue: 37 rules.
+400 rules inserted. Base: 267 rules (67 with conclusion selected). Queue: 81 rules.
+600 rules inserted. Base: 374 rules (79 with conclusion selected). Queue: 122 rules.
+800 rules inserted. Base: 485 rules (82 with conclusion selected). Queue: 68 rules.
+1000 rules inserted. Base: 579 rules (99 with conclusion selected). Queue: 63 rules.
+1200 rules inserted. Base: 584 rules (123 with conclusion selected). Queue: 41 rules.
+1400 rules inserted. Base: 663 rules (137 with conclusion selected). Queue: 12 rules.
+Starting query inj-event(DoorAuthServer(IDDL[],n2,sk)) ==> inj-event(ServerSendsKey(IDDL[],n2,sk))
+goal reachable: b-inj-event(ServerSendsKey(IDDL[],N2_4,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ95_1) && attacker(CU_3) && attacker(N1_2) && attacker(T1_4) -> inj-event(DoorAuthServer(IDDL[],N2_4,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ59_1)
+The 1st hypothesis occurs strictly before the conclusion.
+The 2nd, 3rd, 4th hypotheses occur before the conclusion.
+Abbreviations:
+TID_6 = TID_1[rpw_1 = h2(PWE[],rE[]),idu_1 = IDE[]]
+N2_4 = N2_1[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_1 = g,T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+T2_3 = T2[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_1 = g,T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+N3_2 = N3_1[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],g,aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g)))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_3 = g,iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+T3_4 = T3_3[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],g,aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g)))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_3 = g,iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+@occ59_1 = @occ59[CU_1 = CU_3,CDL = aenc((ALLOW,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),roleF,T3_4),(IDDL[],TID_6,N2_4),h2(IDDL[],xAS[])),T3_1 = T3_4,C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_1 = g,T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+@occ95_1 = @occ95[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],g,aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g)))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],g),kdf1(hA(IDE[],xAS[],v1),exp(g,dAS[]),(sM1,TID_6,T1_4,g))),E_3 = g,iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+goal reachable: b-inj-event(ServerSendsKey(IDDL[],N2_4,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ95_1) && attacker(CU_3) && attacker(N1_2) && attacker(T1_4) && attacker(e1) -> inj-event(DoorAuthServer(IDDL[],N2_4,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ59_1)
+The 1st hypothesis occurs strictly before the conclusion.
+The 2nd, 3rd, 4th, 5th hypotheses occur before the conclusion.
+Abbreviations:
+TID_6 = TID_1[rpw_1 = h2(PWE[],rE[]),idu_1 = IDE[]]
+N2_4 = N2_1[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_1 = exp(g,e1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+T2_3 = T2[C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_1 = exp(g,e1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+N3_2 = N3_1[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e1),aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_3 = exp(g,e1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+T3_4 = T3_3[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e1),aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_3 = exp(g,e1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+@occ59_1 = @occ59[CU_1 = CU_3,CDL = aenc((ALLOW,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),roleF,T3_4),(IDDL[],TID_6,N2_4),h2(IDDL[],xAS[])),T3_1 = T3_4,C1 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_1 = exp(g,e1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+@occ95_1 = @occ95[idu_2 = IDE[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e1),aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDE[]),(TID_6,T1_4,IDDL[],exp(g,e1)),kdf1(hA(IDE[],xAS[],v1),exp(exp(g,dAS[]),e1),(sM1,TID_6,T1_4,exp(g,e1)))),E_3 = exp(g,e1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_1]
+goal reachable: b-inj-event(ServerSendsKey(IDDL[],N2_4,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ95_1) && attacker(CU_3) -> inj-event(DoorAuthServer(IDDL[],N2_4,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ59_1)
+The 1st hypothesis occurs strictly before the conclusion.
+The 2nd hypothesis occurs before the conclusion.
+Abbreviations:
+TID_6 = TID[rpw = h2(PW[],r[]),idu = IDU[]]
+N1_2 = N1[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+T1_4 = T1[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+e_1 = e[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+N2_4 = N2_1[C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+T2_3 = T2[C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+N3_2 = N3_1[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+T3_4 = T3_3[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+@occ59_1 = @occ59[CU_1 = CU_3,CDL = aenc((ALLOW,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),roleF,T3_4),(IDDL[],TID_6,N2_4),h2(IDDL[],xAS[])),T3_1 = T3_4,C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+@occ95_1 = @occ95[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+RESULT inj-event(DoorAuthServer(IDDL[],n2,sk)) ==> inj-event(ServerSendsKey(IDDL[],n2,sk)) is true.
+-- Query event(ASAuthDoor(IDDL[],n2)) ==> event(DoorSendsM2(IDDL[],n2)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 167 rules (64 with conclusion selected). Queue: 38 rules.
+400 rules inserted. Base: 267 rules (68 with conclusion selected). Queue: 80 rules.
+600 rules inserted. Base: 373 rules (79 with conclusion selected). Queue: 112 rules.
+800 rules inserted. Base: 489 rules (83 with conclusion selected). Queue: 63 rules.
+1000 rules inserted. Base: 577 rules (100 with conclusion selected). Queue: 52 rules.
+1200 rules inserted. Base: 591 rules (126 with conclusion selected). Queue: 31 rules.
+Starting query event(ASAuthDoor(IDDL[],n2)) ==> event(DoorSendsM2(IDDL[],n2))
+goal reachable: b-event(DoorSendsM2(IDDL[],N2_4)) && attacker(TID_6) && attacker(T1_4) && attacker(E_4) && attacker(C1_3) -> event(ASAuthDoor(IDDL[],N2_4))
+Abbreviations:
+N2_4 = N2_1[C1 = C1_3,E_1 = E_4,T1_1 = T1_4,TID_3 = TID_6,!1 = @sid]
+RESULT event(ASAuthDoor(IDDL[],n2)) ==> event(DoorSendsM2(IDDL[],n2)) is true.
+-- Query inj-event(UserAcceptsKey(IDDL[],sk)) ==> inj-event(DoorSendsKey(IDDL[],sk)) in process 1.
+Translating the process into Horn clauses...
+Completing...
+200 rules inserted. Base: 169 rules (64 with conclusion selected). Queue: 37 rules.
+400 rules inserted. Base: 273 rules (66 with conclusion selected). Queue: 81 rules.
+600 rules inserted. Base: 375 rules (77 with conclusion selected). Queue: 120 rules.
+800 rules inserted. Base: 497 rules (81 with conclusion selected). Queue: 73 rules.
+1000 rules inserted. Base: 601 rules (98 with conclusion selected). Queue: 62 rules.
+1200 rules inserted. Base: 615 rules (117 with conclusion selected). Queue: 45 rules.
+1400 rules inserted. Base: 705 rules (135 with conclusion selected). Queue: 30 rules.
+Starting query inj-event(UserAcceptsKey(IDDL[],sk)) ==> inj-event(DoorSendsKey(IDDL[],sk))
+goal reachable: b-inj-event(DoorSendsKey(IDDL[],hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ61_1) && attacker(CU_3) -> inj-event(UserAcceptsKey(IDDL[],hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4)),@occ39_1)
+The 1st hypothesis occurs strictly before the conclusion.
+The 2nd hypothesis occurs before the conclusion.
+Abbreviations:
+TID_6 = TID[rpw = h2(PW[],r[]),idu = IDU[]]
+N1_2 = N1[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+T1_4 = T1[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+e_1 = e[iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+N2_4 = N2_1[C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+T2_3 = T2[C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+N3_2 = N3_1[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+T3_4 = T3_3[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+T4_3 = T4_1[CU_1 = CU_3,CDL = aenc((ALLOW,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),roleF,T3_4),(IDDL[],TID_6,N2_4),h2(IDDL[],xAS[])),T3_1 = T3_4,C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+TIDnew_2 = TIDnew_1[idu_2 = IDU[],Tag2 = mac(h2(IDDL[],xAS[]),((TID_6,T1_4,IDDL[],exp(g,e_1),aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1))))),N2_4,T2_3,IDDL[])),T2_2 = T2_3,N2_3 = N2_4,C1_2 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_3 = exp(g,e_1),iddl_3 = IDDL[],T1_3 = T1_4,TID_5 = TID_6,!1 = @sid_2]
+@occ39_1 = @occ39[AuthDL = mac(hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),(sDL,IDDL[],TID_6,T4_3)),T4 = T4_3,T3 = T3_4,CU = aenc((ALLOW,N2_4,N3_2,TIDnew_2,T3_4),(TID_6,IDDL[]),kdfU(hA(IDU[],xAS[],v1),(sM3,N1_2,T3_4))),iddl = IDDL[],!1 = @sid,TID_2 = TID_6,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+@occ61_1 = @occ61[CU_1 = CU_3,CDL = aenc((ALLOW,hSK(N1_2,N2_4,N3_2,IDDL[],TID_6,T3_4),roleF,T3_4),(IDDL[],TID_6,N2_4),h2(IDDL[],xAS[])),T3_1 = T3_4,C1 = aenc((N1_2,IDU[]),(TID_6,T1_4,IDDL[],exp(g,e_1)),kdf1(hA(IDU[],xAS[],v1),exp(exp(g,e_1),dAS[]),(sM1,TID_6,T1_4,exp(g,e_1)))),E_1 = exp(g,e_1),T1_1 = T1_4,TID_3 = TID_6,!1 = @sid_1]
+RESULT inj-event(UserAcceptsKey(IDDL[],sk)) ==> inj-event(DoorSendsKey(IDDL[],sk)) is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Query not attacker(secretU[]) is true.
+
+Query event(DoorAuthUser(IDDL[],sk)) && attacker(sk) ==> event(ServerResponds(IDE[],IDDL[],n1,sk)) is true.
+
+Query not attacker(xAS[]) is true.
+
+Query not attacker(PW[]) is true.
+
+Query not attacker(hA(IDU[],xAS[],v1)) is true.
+
+Query not attacker(h2(IDDL[],xAS[])) is true.
+
+Query not attacker(dAS[]) is true.
+
+Query event(ASAuthUser(IDU[],IDDL[],n1)) ==> event(UserStarts(IDU[],IDDL[],n1)) is true.
+
+Query inj-event(DoorAuthUser(IDDL[],sk)) ==> inj-event(UserConfirms(IDDL[],sk)) || event(ServerResponds(IDE[],IDDL[],n1,sk)) is true.
+
+Query inj-event(UserAuthServer(IDU[],d,n1,sk)) ==> inj-event(ServerResponds(IDU[],d,n1,sk)) is true.
+
+Query inj-event(DoorAuthServer(IDDL[],n2,sk)) ==> inj-event(ServerSendsKey(IDDL[],n2,sk)) is true.
+
+Query event(ASAuthDoor(IDDL[],n2)) ==> event(DoorSendsM2(IDDL[],n2)) is true.
+
+Query inj-event(UserAcceptsKey(IDDL[],sk)) ==> inj-event(DoorSendsKey(IDDL[],sk)) is true.
+
+--------------------------------------------------------------
+
+
+=== guessing_stolen_card.pv ===
+Linear part:
+exp(exp(g,e1),e2) = exp(exp(g,e2),e1)
+Completing equations...
+Completed equations:
+exp(exp(g,e1),e2) = exp(exp(g,e2),e1)
+Convergent part:
+unmask(mask(a,k),k) = a
+mask(unmask(b,k),k) = b
+Completing equations...
+Completed equations:
+mask(unmask(b,k),k) = b
+unmask(mask(a,k),k) = a
+Process 0 (that is, the initial process):
+{1}out(c, exp(g,dAS));
+(
+    {2}in(regin, (idu: bitstring,rpw: bitstring));
+    {3}new TID: bitstring;
+    {4}insert users(TID,idu);
+    {5}out(regout, (mask(hA(idu,xAS,v1),h2(idu,rpw)),TID))
+) | (
+    {6}new r: bitstring;
+    {7}out(regin, (IDU,h2(PW,r)));
+    {8}in(regout, (B: bitstring,TID_1: bitstring));
+    {9}out(c, (B,TID_1,r));
+    {10}!
+    {11}let r_1: bitstring = r in
+    {12}let QAS: G = exp(g,dAS) in
+    {13}let A: bitstring = unmask(B,h2(IDU,h2(PW,r_1))) in
+    {14}new N1: bitstring;
+    {15}new T1: bitstring;
+    {16}new e: exponent;
+    {17}let E: G = exp(g,e) in
+    {18}out(c, (TID_1,T1,IDDL,E,aenc((N1,IDU),(TID_1,T1,IDDL,E),kdf1(A,exp(QAS,e),(sM1,TID_1,T1,E)))));
+    {19}in(c, (CU: bitstring,T3: bitstring,T4: bitstring,AuthDL: bitstring));
+    {20}let (=ALLOW,N2: bitstring,N3: bitstring,TIDnew: bitstring,=T3) = adec(CU,(TID_1,IDDL),kdfU(A,(sM3,N1,T3))) in
+    {21}let SK: bitstring = hSK(N1,N2,N3,IDDL,TID_1,T3) in
+    {22}if (AuthDL = mac(SK,(sDL,IDDL,TID_1,T4))) then
+    {23}new T5: bitstring;
+    {24}out(c, (T5,mac(SK,(sU,TID_1,T5))))
+) | (
+    {25}!
+    {26}let KDL: bitstring = h2(IDDL,xAS) in
+    {27}in(c, (TID_2: bitstring,T1_1: bitstring,=IDDL,E_1: G,C1: bitstring));
+    {28}new N2_1: bitstring;
+    {29}new T2: bitstring;
+    {30}out(c, ((TID_2,T1_1,IDDL,E_1,C1),N2_1,T2,mac(KDL,((TID_2,T1_1,IDDL,E_1,C1),N2_1,T2,IDDL))));
+    {31}in(c, (T3_1: bitstring,CDL: bitstring,CU_1: bitstring));
+    {32}let (=ALLOW,SK_1: bitstring,role: bitstring,=T3_1) = adec(CDL,(IDDL,TID_2,N2_1),KDL) in
+    {33}new T4_1: bitstring;
+    {34}out(c, (CU_1,T3_1,T4_1,mac(SK_1,(sDL,IDDL,TID_2,T4_1))))
+) | (
+    {35}!
+    {36}in(c, ((TID_3: bitstring,T1_2: bitstring,=IDDL,E_2: G,C1_1: bitstring),N2_2: bitstring,T2_1: bitstring,Tag2: bitstring));
+    {37}let KDL_1: bitstring = h2(IDDL,xAS) in
+    {38}if (Tag2 = mac(KDL_1,((TID_3,T1_2,IDDL,E_2,C1_1),N2_2,T2_1,IDDL))) then
+    {46}get users(=TID_3,idu_1: bitstring) in
+    {39}let A_1: bitstring = hA(idu_1,xAS,v1) in
+    {40}let (N1_1: bitstring,=idu_1) = adec(C1_1,(TID_3,T1_2,IDDL,E_2),kdf1(A_1,exp(E_2,dAS),(sM1,TID_3,T1_2,E_2))) in
+    {41}new N3_1: bitstring;
+    {42}new TIDnew_1: bitstring;
+    {43}new T3_2: bitstring;
+    {44}let SK_2: bitstring = hSK(N1_1,N2_2,N3_1,IDDL,TID_3,T3_2) in
+    {45}out(c, (T3_2,aenc((ALLOW,SK_2,roleF,T3_2),(IDDL,TID_3,N2_2),KDL_1),aenc((ALLOW,N2_2,N3_1,TIDnew_1,T3_2),(TID_3,IDDL),kdfU(A_1,(sM3,N1_1,T3_2)))))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+{1}out(c, exp(g,dAS));
+(
+    {2}in(regin, (idu: bitstring,rpw: bitstring));
+    {3}new TID: bitstring;
+    {4}insert users(TID,idu);
+    {5}out(regout, (mask(hA(idu,xAS,v1),h2(idu,rpw)),TID))
+) | (
+    {6}new r: bitstring;
+    {7}out(regin, (IDU,h2(PW,r)));
+    {8}in(regout, (B: bitstring,TID_1: bitstring));
+    {9}out(c, (B,TID_1,r));
+    {10}!
+    {14}new N1: bitstring;
+    {15}new T1: bitstring;
+    {16}new e: exponent;
+    {17}let E: G = exp(g,e) in
+    {11}let r_1: bitstring = r in
+    {13}let A: bitstring = unmask(B,h2(IDU,h2(PW,r_1))) in
+    {12}let QAS: G = exp(g,dAS) in
+    {18}out(c, (TID_1,T1,IDDL,E,aenc((N1,IDU),(TID_1,T1,IDDL,E),kdf1(A,exp(QAS,e),(sM1,TID_1,T1,E)))));
+    {19}in(c, (CU: bitstring,T3: bitstring,T4: bitstring,AuthDL: bitstring));
+    {20}let (=ALLOW,N2: bitstring,N3: bitstring,TIDnew: bitstring,=T3) = adec(CU,(TID_1,IDDL),kdfU(A,(sM3,N1,T3))) in
+    {21}let SK: bitstring = hSK(N1,N2,N3,IDDL,TID_1,T3) in
+    {22}if (AuthDL = mac(SK,(sDL,IDDL,TID_1,T4))) then
+    {23}new T5: bitstring;
+    {24}out(c, (T5,mac(SK,(sU,TID_1,T5))))
+) | (
+    {25}!
+    {27}in(c, (TID_2: bitstring,T1_1: bitstring,=IDDL,E_1: G,C1: bitstring));
+    {28}new N2_1: bitstring;
+    {29}new T2: bitstring;
+    {26}let KDL: bitstring = h2(IDDL,xAS) in
+    {30}out(c, ((TID_2,T1_1,IDDL,E_1,C1),N2_1,T2,mac(KDL,((TID_2,T1_1,IDDL,E_1,C1),N2_1,T2,IDDL))));
+    {31}in(c, (T3_1: bitstring,CDL: bitstring,CU_1: bitstring));
+    {32}let (=ALLOW,SK_1: bitstring,role: bitstring,=T3_1) = adec(CDL,(IDDL,TID_2,N2_1),KDL) in
+    {33}new T4_1: bitstring;
+    {34}out(c, (CU_1,T3_1,T4_1,mac(SK_1,(sDL,IDDL,TID_2,T4_1))))
+) | (
+    {35}!
+    {36}in(c, ((TID_3: bitstring,T1_2: bitstring,=IDDL,E_2: G,C1_1: bitstring),N2_2: bitstring,T2_1: bitstring,Tag2: bitstring));
+    {37}let KDL_1: bitstring = h2(IDDL,xAS) in
+    {38}if (Tag2 = mac(KDL_1,((TID_3,T1_2,IDDL,E_2,C1_1),N2_2,T2_1,IDDL))) then
+    {46}get users(=TID_3,idu_1: bitstring) in
+    {39}let A_1: bitstring = hA(idu_1,xAS,v1) in
+    {40}let (N1_1: bitstring,=idu_1) = adec(C1_1,(TID_3,T1_2,IDDL,E_2),kdf1(A_1,exp(E_2,dAS),(sM1,TID_3,T1_2,E_2))) in
+    {41}new N3_1: bitstring;
+    {42}new TIDnew_1: bitstring;
+    {43}new T3_2: bitstring;
+    {44}let SK_2: bitstring = hSK(N1_1,N2_2,N3_1,IDDL,TID_3,T3_2) in
+    {45}out(c, (T3_2,aenc((ALLOW,SK_2,roleF,T3_2),(IDDL,TID_3,N2_2),KDL_1),aenc((ALLOW,N2_2,N3_1,TIDnew_1,T3_2),(TID_3,IDDL),kdfU(A_1,(sM3,N1_1,T3_2)))))
+)
+
+-- Weak secret PW in process 1.
+Translating the process into Horn clauses...
+Termination warning: v ≠ v_1 && attacker_guess(v_2,v) && attacker_guess(v_2,v_1) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_guess(v,v_2) && attacker_guess(v_1,v_2) -> bad
+Selecting 0
+Completing...
+Termination warning: v ≠ v_1 && attacker_guess(v_2,v) && attacker_guess(v_2,v_1) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_guess(v,v_2) && attacker_guess(v_1,v_2) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker(v) && attacker_guess(v,v_1) -> bad
+Selecting 1
+Termination warning: v ≠ v_1 && attacker(v) && attacker_guess(v_1,v) -> bad
+Selecting 1
+200 rules inserted. Base: 198 rules (72 with conclusion selected). Queue: 71 rules.
+400 rules inserted. Base: 376 rules (91 with conclusion selected). Queue: 95 rules.
+600 rules inserted. Base: 519 rules (91 with conclusion selected). Queue: 81 rules.
+800 rules inserted. Base: 599 rules (96 with conclusion selected). Queue: 76 rules.
+1000 rules inserted. Base: 630 rules (98 with conclusion selected). Queue: 17 rules.
+RESULT Weak secret PW is true.
+
+--------------------------------------------------------------
+Verification summary:
+
+Weak secret PW is true.
+
+--------------------------------------------------------------
+
+
+=== guessing_stolen_card_original.pv ===
+Linear part: No equation.
+Convergent part:
+unmask(mask(a,k),k) = a
+mask(unmask(b,k),k) = b
+Completing equations...
+Completed equations:
+mask(unmask(b,k),k) = b
+unmask(mask(a,k),k) = a
+Process 0 (that is, the initial process):
+(
+    {1}in(regin, (idu: bitstring,rpw: bitstring));
+    {2}new TID: bitstring;
+    {3}insert users(TID,idu);
+    {4}out(regout, (mask(hA(idu,xAS,v1),h2(idu,rpw)),TID))
+) | (
+    {5}new r: bitstring;
+    {6}out(regin, (IDU,h2(PW,r)));
+    {7}in(regout, (B: bitstring,TID_1: bitstring));
+    {8}out(c, (B,TID_1,r));
+    {9}!
+    {10}let r_1: bitstring = r in
+    {11}let A: bitstring = unmask(B,h2(IDU,h2(PW,r_1))) in
+    {12}new N1: bitstring;
+    {13}new T1: bitstring;
+    {14}out(c, (TID_1,T1,IDDL,aenc((N1,IDU),(TID_1,T1,IDDL),kdf0(A,(sM1,TID_1,T1)))));
+    {15}in(c, (CU: bitstring,T3: bitstring,T4: bitstring,AuthDL: bitstring));
+    {16}let (=ALLOW,N2: bitstring,N3: bitstring,TIDnew: bitstring,=T3) = adec(CU,(TID_1,IDDL),kdfU(A,(sM3,N1,T3))) in
+    {17}let SK: bitstring = hSK(N1,N2,N3,IDDL,TID_1,T3) in
+    {18}if (AuthDL = mac(SK,(sDL,IDDL,TID_1,T4))) then
+    {19}new T5: bitstring;
+    {20}out(c, (T5,mac(SK,(sU,TID_1,T5))))
+) | (
+    {21}!
+    {22}let KDL: bitstring = h2(IDDL,xAS) in
+    {23}in(c, (TID_2: bitstring,T1_1: bitstring,=IDDL,C1: bitstring));
+    {24}new N2_1: bitstring;
+    {25}new T2: bitstring;
+    {26}out(c, ((TID_2,T1_1,IDDL,C1),N2_1,T2,mac(KDL,((TID_2,T1_1,IDDL,C1),N2_1,T2,IDDL))));
+    {27}in(c, (T3_1: bitstring,CDL: bitstring,CU_1: bitstring));
+    {28}let (=ALLOW,SK_1: bitstring,role: bitstring,=T3_1) = adec(CDL,(IDDL,TID_2,N2_1),KDL) in
+    {29}new T4_1: bitstring;
+    {30}out(c, (CU_1,T3_1,T4_1,mac(SK_1,(sDL,IDDL,TID_2,T4_1))))
+) | (
+    {31}!
+    {32}in(c, ((TID_3: bitstring,T1_2: bitstring,=IDDL,C1_1: bitstring),N2_2: bitstring,T2_1: bitstring,Tag2: bitstring));
+    {33}let KDL_1: bitstring = h2(IDDL,xAS) in
+    {34}if (Tag2 = mac(KDL_1,((TID_3,T1_2,IDDL,C1_1),N2_2,T2_1,IDDL))) then
+    {42}get users(=TID_3,idu_1: bitstring) in
+    {35}let A_1: bitstring = hA(idu_1,xAS,v1) in
+    {36}let (N1_1: bitstring,=idu_1) = adec(C1_1,(TID_3,T1_2,IDDL),kdf0(A_1,(sM1,TID_3,T1_2))) in
+    {37}new N3_1: bitstring;
+    {38}new TIDnew_1: bitstring;
+    {39}new T3_2: bitstring;
+    {40}let SK_2: bitstring = hSK(N1_1,N2_2,N3_1,IDDL,TID_3,T3_2) in
+    {41}out(c, (T3_2,aenc((ALLOW,SK_2,roleF,T3_2),(IDDL,TID_3,N2_2),KDL_1),aenc((ALLOW,N2_2,N3_1,TIDnew_1,T3_2),(TID_3,IDDL),kdfU(A_1,(sM3,N1_1,T3_2)))))
+)
+
+--  Process 1 (that is, process 0, with let moved downwards):
+(
+    {1}in(regin, (idu: bitstring,rpw: bitstring));
+    {2}new TID: bitstring;
+    {3}insert users(TID,idu);
+    {4}out(regout, (mask(hA(idu,xAS,v1),h2(idu,rpw)),TID))
+) | (
+    {5}new r: bitstring;
+    {6}out(regin, (IDU,h2(PW,r)));
+    {7}in(regout, (B: bitstring,TID_1: bitstring));
+    {8}out(c, (B,TID_1,r));
+    {9}!
+    {12}new N1: bitstring;
+    {13}new T1: bitstring;
+    {10}let r_1: bitstring = r in
+    {11}let A: bitstring = unmask(B,h2(IDU,h2(PW,r_1))) in
+    {14}out(c, (TID_1,T1,IDDL,aenc((N1,IDU),(TID_1,T1,IDDL),kdf0(A,(sM1,TID_1,T1)))));
+    {15}in(c, (CU: bitstring,T3: bitstring,T4: bitstring,AuthDL: bitstring));
+    {16}let (=ALLOW,N2: bitstring,N3: bitstring,TIDnew: bitstring,=T3) = adec(CU,(TID_1,IDDL),kdfU(A,(sM3,N1,T3))) in
+    {17}let SK: bitstring = hSK(N1,N2,N3,IDDL,TID_1,T3) in
+    {18}if (AuthDL = mac(SK,(sDL,IDDL,TID_1,T4))) then
+    {19}new T5: bitstring;
+    {20}out(c, (T5,mac(SK,(sU,TID_1,T5))))
+) | (
+    {21}!
+    {23}in(c, (TID_2: bitstring,T1_1: bitstring,=IDDL,C1: bitstring));
+    {24}new N2_1: bitstring;
+    {25}new T2: bitstring;
+    {22}let KDL: bitstring = h2(IDDL,xAS) in
+    {26}out(c, ((TID_2,T1_1,IDDL,C1),N2_1,T2,mac(KDL,((TID_2,T1_1,IDDL,C1),N2_1,T2,IDDL))));
+    {27}in(c, (T3_1: bitstring,CDL: bitstring,CU_1: bitstring));
+    {28}let (=ALLOW,SK_1: bitstring,role: bitstring,=T3_1) = adec(CDL,(IDDL,TID_2,N2_1),KDL) in
+    {29}new T4_1: bitstring;
+    {30}out(c, (CU_1,T3_1,T4_1,mac(SK_1,(sDL,IDDL,TID_2,T4_1))))
+) | (
+    {31}!
+    {32}in(c, ((TID_3: bitstring,T1_2: bitstring,=IDDL,C1_1: bitstring),N2_2: bitstring,T2_1: bitstring,Tag2: bitstring));
+    {33}let KDL_1: bitstring = h2(IDDL,xAS) in
+    {34}if (Tag2 = mac(KDL_1,((TID_3,T1_2,IDDL,C1_1),N2_2,T2_1,IDDL))) then
+    {42}get users(=TID_3,idu_1: bitstring) in
+    {35}let A_1: bitstring = hA(idu_1,xAS,v1) in
+    {36}let (N1_1: bitstring,=idu_1) = adec(C1_1,(TID_3,T1_2,IDDL),kdf0(A_1,(sM1,TID_3,T1_2))) in
+    {37}new N3_1: bitstring;
+    {38}new TIDnew_1: bitstring;
+    {39}new T3_2: bitstring;
+    {40}let SK_2: bitstring = hSK(N1_1,N2_2,N3_1,IDDL,TID_3,T3_2) in
+    {41}out(c, (T3_2,aenc((ALLOW,SK_2,roleF,T3_2),(IDDL,TID_3,N2_2),KDL_1),aenc((ALLOW,N2_2,N3_1,TIDnew_1,T3_2),(TID_3,IDDL),kdfU(A_1,(sM3,N1_1,T3_2)))))
+)
+
+-- Weak secret PW in process 1.
+Translating the process into Horn clauses...
+Termination warning: v ≠ v_1 && attacker_guess(v_2,v) && attacker_guess(v_2,v_1) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_guess(v,v_2) && attacker_guess(v_1,v_2) -> bad
+Selecting 0
+Completing...
+Termination warning: v ≠ v_1 && attacker_guess(v_2,v) && attacker_guess(v_2,v_1) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker_guess(v,v_2) && attacker_guess(v_1,v_2) -> bad
+Selecting 0
+Termination warning: v ≠ v_1 && attacker(v) && attacker_guess(v,v_1) -> bad
+Selecting 1
+Termination warning: v ≠ v_1 && attacker(v) && attacker_guess(v_1,v) -> bad
+Selecting 1
+200 rules inserted. Base: 196 rules (64 with conclusion selected). Queue: 27 rules.
+goal reachable: bad
+
+Derivation:
+Abbreviations:
+TID_4 = TID[rpw = h2(PW[],r[]),idu = IDU[]]
+N1_2 = N1[!1 = @sid,TID_1 = TID_4,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+T1_3 = T1[!1 = @sid,TID_1 = TID_4,B = mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))]
+
+1. The message (IDU[],h2(PW[],r[])) may be sent on channel regin[] at output {6}.
+mess(regin[],(IDU[],h2(PW[],r[]))).
+
+2. The message (IDU[],h2(PW[],r[])) that may be sent on channel regin[] by 1 may be received at input {1}.
+So the message (mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4) may be sent on channel regout[] at output {4}.
+mess(regout[],(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4)).
+
+3. The message (mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4) that may be sent on channel regout[] by 2 may be received at input {7}.
+So the message (TID_4,T1_3,IDDL[],aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(unmask(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),h2(IDU[],h2(PW[],r[]))),(sM1,TID_4,T1_3)))) may be sent to the attacker at output {14}.
+attacker((TID_4,T1_3,IDDL[],aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(unmask(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),h2(IDU[],h2(PW[],r[]))),(sM1,TID_4,T1_3))))).
+
+4. By 3, the attacker may know (TID_4,T1_3,IDDL[],aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(unmask(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),h2(IDU[],h2(PW[],r[]))),(sM1,TID_4,T1_3)))).
+Using the function 2-proj-4-tuple the attacker may obtain T1_3.
+attacker(T1_3).
+
+5. By 4, the attacker may know T1_3.
+So the attacker may know T1_3 (resp. T1_3) in off-line phase.
+attacker_guess(T1_3,T1_3).
+
+6. The message (mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4) that may be sent on channel regout[] by 2 may be received at input {7}.
+So the message (mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4,r[]) may be sent to the attacker at output {8}.
+attacker((mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4,r[])).
+
+7. By 6, the attacker may know (mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4,r[]).
+Using the function 2-proj-3-tuple the attacker may obtain TID_4.
+attacker(TID_4).
+
+8. By 7, the attacker may know TID_4.
+So the attacker may know TID_4 (resp. TID_4) in off-line phase.
+attacker_guess(TID_4,TID_4).
+
+9. Using the function sM1 the attacker may obtain sM1 (resp. sM1) in off-line phase.
+attacker_guess(sM1,sM1).
+
+10. By 9, the attacker may know sM1 (resp. sM1) in off-line phase.
+By 8, the attacker may know TID_4 (resp. TID_4) in off-line phase.
+By 5, the attacker may know T1_3 (resp. T1_3) in off-line phase.
+Using the function 3-tuple the attacker may obtain (sM1,TID_4,T1_3) (resp. (sM1,TID_4,T1_3)) in off-line phase.
+attacker_guess((sM1,TID_4,T1_3),(sM1,TID_4,T1_3)).
+
+11. By 6, the attacker may know (mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4,r[]).
+Using the function 3-proj-3-tuple the attacker may obtain r[].
+attacker(r[]).
+
+12. By 11, the attacker may know r[].
+So the attacker may know r[] (resp. r[]) in off-line phase.
+attacker_guess(r[],r[]).
+
+13. The attacker has the weak secret PW[] in the first component, a guess @weaksecretcst in the second.
+attacker_guess(PW[],@weaksecretcst).
+
+14. By 13, the attacker may know PW[] (resp. @weaksecretcst) in off-line phase.
+By 12, the attacker may know r[] (resp. r[]) in off-line phase.
+Using the function h2 the attacker may obtain h2(PW[],r[]) (resp. h2(@weaksecretcst,r[])) in off-line phase.
+attacker_guess(h2(PW[],r[]),h2(@weaksecretcst,r[])).
+
+15. The attacker initially knows IDU[] (resp. IDU[]) in off-line phase.
+attacker_guess(IDU[],IDU[]).
+
+16. By 15, the attacker may know IDU[] (resp. IDU[]) in off-line phase.
+By 14, the attacker may know h2(PW[],r[]) (resp. h2(@weaksecretcst,r[])) in off-line phase.
+Using the function h2 the attacker may obtain h2(IDU[],h2(PW[],r[])) (resp. h2(IDU[],h2(@weaksecretcst,r[]))) in off-line phase.
+attacker_guess(h2(IDU[],h2(PW[],r[])),h2(IDU[],h2(@weaksecretcst,r[]))).
+
+17. By 6, the attacker may know (mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4,r[]).
+Using the function 1-proj-3-tuple the attacker may obtain mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))).
+attacker(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))).
+
+18. By 17, the attacker may know mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))).
+So the attacker may know mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))) (resp. mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))) in off-line phase.
+attacker_guess(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))).
+
+19. By 18, the attacker may know mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))) (resp. mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[])))) in off-line phase.
+By 16, the attacker may know h2(IDU[],h2(PW[],r[])) (resp. h2(IDU[],h2(@weaksecretcst,r[]))) in off-line phase.
+Using the function unmask the attacker may obtain hA(IDU[],xAS[],v1) (resp. unmask(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),h2(IDU[],h2(@weaksecretcst,r[])))) in off-line phase.
+attacker_guess(hA(IDU[],xAS[],v1),unmask(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),h2(IDU[],h2(@weaksecretcst,r[])))).
+
+20. By 19, the attacker may know hA(IDU[],xAS[],v1) (resp. unmask(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),h2(IDU[],h2(@weaksecretcst,r[])))) in off-line phase.
+By 10, the attacker may know (sM1,TID_4,T1_3) (resp. (sM1,TID_4,T1_3)) in off-line phase.
+Using the function kdf0 the attacker may obtain kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3)) (resp. kdf0(unmask(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),h2(IDU[],h2(@weaksecretcst,r[]))),(sM1,TID_4,T1_3))) in off-line phase.
+attacker_guess(kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3)),kdf0(unmask(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),h2(IDU[],h2(@weaksecretcst,r[]))),(sM1,TID_4,T1_3))).
+
+21. The attacker initially knows IDDL[] (resp. IDDL[]) in off-line phase.
+attacker_guess(IDDL[],IDDL[]).
+
+22. By 8, the attacker may know TID_4 (resp. TID_4) in off-line phase.
+By 5, the attacker may know T1_3 (resp. T1_3) in off-line phase.
+By 21, the attacker may know IDDL[] (resp. IDDL[]) in off-line phase.
+Using the function 3-tuple the attacker may obtain (TID_4,T1_3,IDDL[]) (resp. (TID_4,T1_3,IDDL[])) in off-line phase.
+attacker_guess((TID_4,T1_3,IDDL[]),(TID_4,T1_3,IDDL[])).
+
+23. The message (mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),TID_4) that may be sent on channel regout[] by 2 may be received at input {7}.
+So the message (TID_4,T1_3,IDDL[],aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3)))) may be sent to the attacker at output {14}.
+attacker((TID_4,T1_3,IDDL[],aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3))))).
+
+24. By 23, the attacker may know (TID_4,T1_3,IDDL[],aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3)))).
+Using the function 4-proj-4-tuple the attacker may obtain aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3))).
+attacker(aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3)))).
+
+25. By 24, the attacker may know aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3))).
+So the attacker may know aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3))) (resp. aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3)))) in off-line phase.
+attacker_guess(aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3))),aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3)))).
+
+26. By 25, the attacker may know aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3))) (resp. aenc((N1_2,IDU[]),(TID_4,T1_3,IDDL[]),kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3)))) in off-line phase.
+By 22, the attacker may know (TID_4,T1_3,IDDL[]) (resp. (TID_4,T1_3,IDDL[])) in off-line phase.
+By 20, the attacker may know kdf0(hA(IDU[],xAS[],v1),(sM1,TID_4,T1_3)) (resp. kdf0(unmask(mask(hA(IDU[],xAS[],v1),h2(IDU[],h2(PW[],r[]))),h2(IDU[],h2(@weaksecretcst,r[]))),(sM1,TID_4,T1_3))) in off-line phase.
+Using the function adec the attacker may obtain (N1_2,IDU[]) (resp. fail-any_type) in off-line phase.
+attacker_guess((N1_2,IDU[]),fail-any_type).
+
+27. By 26, the attacker may know (N1_2,IDU[]) (resp. fail-any_type) in off-line phase.
+So the attacker may test the failure of this term, which may allow it to distinguish cases.
+bad.
+
+
+A more detailed output of the traces is available with
+  set traceDisplay = long.
+
+new r: bitstring creating r_2 at {5}
+
+out(regin, (IDU,h2(PW,r_2))) at {6} received at {1}
+
+new TID: bitstring creating TID_5 at {2}
+
+insert users(TID_5,IDU) at {3}
+
+out(regout, (mask(hA(IDU,xAS,v1),h2(IDU,h2(PW,r_2))),TID_5)) at {4} received at {7}
+
+out(c, (~M,~M_1,~M_2)) with ~M = mask(hA(IDU,xAS,v1),h2(IDU,h2(PW,r_2))), ~M_1 = TID_5, ~M_2 = r_2 at {8}
+
+new N1: bitstring creating N1_3 at {12} in copy a
+
+new T1: bitstring creating T1_4 at {13} in copy a
+
+out(c, (~M_3,~M_4,~M_5,~M_6)) with ~M_3 = TID_5, ~M_4 = T1_4, ~M_5 = IDDL, ~M_6 = aenc((N1_3,IDU),(TID_5,T1_4,IDDL),kdf0(unmask(mask(hA(IDU,xAS,v1),h2(IDU,h2(PW,r_2))),h2(IDU,h2(PW,r_2))),(sM1,TID_5,T1_4))) at {14} in copy a
+
+The attacker tests whether adec(~M_6,(~M_1,~M_4,IDDL),kdf0(unmask(~M,h2(IDU,h2(@weaksecretcst,~M_2))),(sM1,~M_1,~M_4))) is fail knowing
+~M_4 = T1_4,
+~M_1 = TID_5,
+~M_2 = r_2,
+~M = mask(hA(IDU,xAS,v1),h2(IDU,h2(PW,r_2))),
+~M_4 = T1_4,
+~M_1 = TID_5,
+~M_6 = aenc((N1_3,IDU),(TID_5,T1_4,IDDL),kdf0(hA(IDU,xAS,v1),(sM1,TID_5,T1_4))).
+This allows the attacker to know whether @weaksecretcst = PW.
+A trace has been found.
+RESULT Weak secret PW is false.
+
+--------------------------------------------------------------
+Verification summary:
+
+Weak secret PW is false.
+
+--------------------------------------------------------------
+
+
+=== Summary ===
+[door_lock.pv] RESULT not attacker(secretU[]) is true.
+[door_lock.pv] RESULT event(DoorAuthUser(IDDL[],sk)) && attacker(sk) ==> event(ServerResponds(IDE[],IDDL[],n1,sk)) is true.
+[door_lock.pv] RESULT not attacker(xAS[]) is true.
+[door_lock.pv] RESULT not attacker(PW[]) is true.
+[door_lock.pv] RESULT not attacker(hA(IDU[],xAS[],v1)) is true.
+[door_lock.pv] RESULT not attacker(h2(IDDL[],xAS[])) is true.
+[door_lock.pv] RESULT not attacker(dAS[]) is true.
+[door_lock.pv] RESULT event(ASAuthUser(IDU[],IDDL[],n1)) ==> event(UserStarts(IDU[],IDDL[],n1)) is true.
+[door_lock.pv] RESULT inj-event(DoorAuthUser(IDDL[],sk)) ==> inj-event(UserConfirms(IDDL[],sk)) || event(ServerResponds(IDE[],IDDL[],n1,sk)) is true.
+[door_lock.pv] RESULT inj-event(UserAuthServer(IDU[],d,n1,sk)) ==> inj-event(ServerResponds(IDU[],d,n1,sk)) is true.
+[door_lock.pv] RESULT inj-event(DoorAuthServer(IDDL[],n2,sk)) ==> inj-event(ServerSendsKey(IDDL[],n2,sk)) is true.
+[door_lock.pv] RESULT event(ASAuthDoor(IDDL[],n2)) ==> event(DoorSendsM2(IDDL[],n2)) is true.
+[door_lock.pv] RESULT inj-event(UserAcceptsKey(IDDL[],sk)) ==> inj-event(DoorSendsKey(IDDL[],sk)) is true.
+[guessing_stolen_card.pv] RESULT Weak secret PW is true.
+[guessing_stolen_card_original.pv] RESULT Weak secret PW is false.
+

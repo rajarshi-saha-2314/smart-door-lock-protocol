@@ -1,0 +1,4 @@
+cryptography>=42
+pytest>=8
+rich>=13
+ruff>=0.5

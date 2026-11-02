@@ -1,0 +1,31 @@
+%% Phase 3 — Login and authentication over the public channel (with D1, D2, D3)
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant SD as Smart Device
+    participant DL as Door Lock
+    participant AS as Authentication Server
+
+    U->>SD: ID_U*, PW_U*
+    Note over SD: Step 1 — local login<br/>RPW* = h(PW_U* ‖ r)<br/>check int(h(h(ID_U* ‖ RPW*))) mod n0 = V<br/>A = B ⊕ h(ID_U* ‖ RPW*)
+
+    Note over SD: Step 2 — N1, T1, ephemeral e<br/>E = e·G, Z = e·Q_AS (D1)<br/>k1 = KDF(A ‖ Z, "M1" ‖ TID ‖ T1 ‖ E)<br/>C1 = Enc_k1(N1 ‖ ID_U, aad = TID ‖ T1 ‖ ID_DL ‖ E)
+    SD->>DL: M1 = {TID, T1, ID_DL, E, C1}
+
+    Note over DL: Step 3 — check |now − T1| ≤ ΔT<br/>N2, T2<br/>Tag2 = HMAC(K_DL, M1 ‖ N2 ‖ T2 ‖ ID_DL)
+    DL->>AS: M2 = {M1, N2, T2, Tag2}
+
+    Note over AS: Step 4 — T1, T2 fresh, (TID, T1, h(C1)) not replayed<br/>K_DL = h(ID_DL ‖ x), verify Tag2 → door authenticated<br/>TID ∈ {TID_cur, TID_old}, not revoked, failed_attempts below 5<br/>A = h(ID_U ‖ x ‖ v), Z = d_AS·E, decrypt C1 → user authenticated<br/>policy(ID_U, role, ID_DL, time) → ALLOW / DENY
+    Note over AS: N3, TID_new, T3<br/>SK = h(N1 ‖ N2 ‖ N3 ‖ ID_DL ‖ TID ‖ T3)<br/>C_DL = Enc_K_DL(decision ‖ SK ‖ role ‖ T3, aad = ID_DL ‖ TID ‖ N2)<br/>k_u = KDF(A, "M3" ‖ N1 ‖ T3)<br/>C_U = Enc_k_u(decision ‖ N2 ‖ N3 ‖ TID_new ‖ T3, aad = TID ‖ ID_DL)<br/>TID_old ← TID, TID_cur ← TID_new, signed audit-log entry
+    AS->>DL: M3 = {T3, C_DL, C_U}
+
+    Note over DL: Step 5 — decrypt C_DL → AS authenticated, gets SK<br/>T4, Auth_DL = HMAC(SK, "DL-CONFIRM" ‖ ID_DL ‖ TID ‖ T4)
+    DL->>SD: M4 = {C_U, T3, T4, Auth_DL}   (DENY → only {C_U, T3})
+
+    Note over SD: Step 6 — k_u, decrypt C_U → AS authenticated<br/>SK = h(N1 ‖ N2 ‖ N3 ‖ ID_DL ‖ TID ‖ T3)<br/>verify Auth_DL → door authenticated<br/>card TID ← TID_new<br/>Auth_U = HMAC(SK, "U-CONFIRM" ‖ TID ‖ T5) (D3)
+    SD->>DL: M5 = {T5, Auth_U}
+
+    Note over DL: Step 7 — verify T5, Auth_U → user holds SK
+    DL->>DL: 🔓 UNLOCKED ID_DL for 5 s
+    DL->>SD: Enc_SK("UNLOCKED ID_DL for 5 s")
+    SD->>DL: Enc_SK("LOCK") (optional)

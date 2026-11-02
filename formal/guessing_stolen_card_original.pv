@@ -1,0 +1,91 @@
+(* =====================================================================
+   COUNTERFACTUAL: the same stolen-device guessing analysis for the ORIGINAL
+   specification (before design change D1): k1 = KDF(A, "M1" || TID || T1), no ECDH,
+   M1 = {TID, T1, ID_DL, C1}.
+   Expected: weak secret PW is FALSE - ProVerif should print a trace in which the
+   attacker recomputes A from (B, r, guess) and checks it by decrypting a recorded C1.
+   This is the flaw that motivated D1. (D2 and D3 are kept so that only D1 differs.)
+   ===================================================================== *)
+
+free c: channel.
+free regin: channel [private].
+free regout: channel [private].
+
+type key.
+
+fun h2(bitstring, bitstring): bitstring.
+fun hA(bitstring, bitstring, bitstring): bitstring.
+fun hSK(bitstring, bitstring, bitstring, bitstring, bitstring, bitstring): bitstring.
+fun mac(bitstring, bitstring): bitstring.
+fun kdf0(bitstring, bitstring): key.
+fun kdfU(bitstring, bitstring): key.
+fun tokey(bitstring): key [typeConverter].
+fun aenc(bitstring, bitstring, key): bitstring.
+reduc forall m: bitstring, ad: bitstring, k: key; adec(aenc(m, ad, k), ad, k) = m.
+fun mask(bitstring, bitstring): bitstring.
+fun unmask(bitstring, bitstring): bitstring.
+equation forall a: bitstring, k: bitstring; unmask(mask(a, k), k) = a.
+equation forall b: bitstring, k: bitstring; mask(unmask(b, k), k) = b.   (* like XOR: (b xor k) xor k = b *)
+
+const sM1: bitstring. const sM3: bitstring. const sDL: bitstring. const sU: bitstring.
+const ALLOW: bitstring. const roleF: bitstring. const v1: bitstring.
+
+free xAS: bitstring [private].
+free PW: bitstring [private].
+free IDU: bitstring.
+free IDDL: bitstring.
+
+table users(bitstring, bitstring).
+
+weaksecret PW.
+
+let UserSession(B: bitstring, TID: bitstring, r: bitstring) =
+  let A = unmask(B, h2(IDU, h2(PW, r))) in
+  new N1: bitstring; new T1: bitstring;
+  out(c, (TID, T1, IDDL, aenc((N1, IDU), (TID, T1, IDDL), kdf0(A, (sM1, TID, T1)))));
+  in(c, (CU: bitstring, T3: bitstring, T4: bitstring, AuthDL: bitstring));
+  let (=ALLOW, N2: bitstring, N3: bitstring, TIDnew: bitstring, =T3) = adec(CU, (TID, IDDL), kdfU(A, (sM3, N1, T3))) in
+  let SK = hSK(N1, N2, N3, IDDL, TID, T3) in
+  if AuthDL = mac(SK, (sDL, IDDL, TID, T4)) then
+  new T5: bitstring;
+  out(c, (T5, mac(SK, (sU, TID, T5)))).
+
+let DoorSession(KDL: bitstring) =
+  in(c, (TID: bitstring, T1: bitstring, =IDDL, C1: bitstring));
+  new N2: bitstring; new T2: bitstring;
+  out(c, ((TID, T1, IDDL, C1), N2, T2, mac(KDL, ((TID, T1, IDDL, C1), N2, T2, IDDL))));
+  in(c, (T3: bitstring, CDL: bitstring, CU: bitstring));
+  let (=ALLOW, SK: bitstring, role: bitstring, =T3) = adec(CDL, (IDDL, TID, N2), tokey(KDL)) in
+  new T4: bitstring;
+  out(c, (CU, T3, T4, mac(SK, (sDL, IDDL, TID, T4)))).
+
+let ServerSession =
+  in(c, ((TID: bitstring, T1: bitstring, =IDDL, C1: bitstring), N2: bitstring, T2: bitstring, Tag2: bitstring));
+  let KDL = h2(IDDL, xAS) in
+  if Tag2 = mac(KDL, ((TID, T1, IDDL, C1), N2, T2, IDDL)) then
+  get users(=TID, idu: bitstring) in
+  let A = hA(idu, xAS, v1) in
+  let (N1: bitstring, =idu) = adec(C1, (TID, T1, IDDL), kdf0(A, (sM1, TID, T1))) in
+  new N3: bitstring; new TIDnew: bitstring; new T3: bitstring;
+  let SK = hSK(N1, N2, N3, IDDL, TID, T3) in
+  out(c, (T3,
+          aenc((ALLOW, SK, roleF, T3), (IDDL, TID, N2), tokey(KDL)),
+          aenc((ALLOW, N2, N3, TIDnew, T3), (TID, IDDL), kdfU(A, (sM3, N1, T3))))).
+
+let Registration =
+  in(regin, (idu: bitstring, rpw: bitstring));
+  new TID: bitstring;
+  insert users(TID, idu);
+  out(regout, (mask(hA(idu, xAS, v1), h2(idu, rpw)), TID)).
+
+process
+  (
+      Registration
+    | ( new r: bitstring;
+        out(regin, (IDU, h2(PW, r)));
+        in(regout, (B: bitstring, TID: bitstring));
+        out(c, (B, TID, r));                 (* the smart device is stolen and read out *)
+        !UserSession(B, TID, r) )
+    | !DoorSession(h2(IDDL, xAS))
+    | !ServerSession
+  )

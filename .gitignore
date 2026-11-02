@@ -1,0 +1,20 @@
+# runtime secrets and state — never commit
+keys/
+cards/
+logs/
+db/*.db*
+
+# python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+
+
+# runtime public door directory
+doors.json
+
+# ProVerif scratch logs
+formal/*.log

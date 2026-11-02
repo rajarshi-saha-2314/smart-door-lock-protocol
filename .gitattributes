@@ -1,0 +1,4 @@
+# Keep LF where tools break on CRLF (bash scripts, Makefile, ProVerif models)
+*.sh     text eol=lf
+Makefile text eol=lf
+*.pv     text eol=lf

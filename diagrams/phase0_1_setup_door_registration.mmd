@@ -1,0 +1,18 @@
+%% Phase 0 (system setup) and Phase 1 (door lock registration, offline)
+sequenceDiagram
+    autonumber
+    participant AS as Authentication Server
+    participant DL as Door Lock (ID_DL)
+
+    Note over AS: Phase 0 — System setup
+    AS->>AS: x ← 256-bit random (master secret, never leaves AS)
+    AS->>AS: (sk_AS, pk_AS) ← ECDSA P-256 key pair (audit log)
+    AS->>AS: (d_AS, Q_AS = d_AS·G) ← ECDH P-256 key pair (D1)
+    AS-->>AS: publish pk_AS and Q_AS
+
+    Note over AS,DL: Phase 1 — Door registration (offline, at the office)
+    AS->>AS: assign ID_DL
+    AS->>AS: K_DL = h(ID_DL ‖ x)
+    AS->>DL: install {ID_DL, K_DL, pk_AS} in the door's config (secure channel)
+    AS->>AS: doors table ← ID_DL (K_DL is NOT stored, recomputed from x)
+    Note over DL: each door has its own K_DL<br/>leaking one reveals nothing about x or other doors

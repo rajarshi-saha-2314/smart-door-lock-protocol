@@ -1,0 +1,18 @@
+%% Phase 2 — User registration (offline, over the secure channel)
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant SD as Smart Device
+    participant AS as Authentication Server
+
+    U->>SD: choose ID_U, PW_U
+    SD->>SD: r ← 128-bit random<br/>RPW = h(PW_U ‖ r)
+    SD->>AS: {ID_U, RPW, role} (secure channel, in person)
+    AS->>AS: v ← 1 (card issue counter, D2)<br/>A = h(ID_U ‖ x ‖ v)
+    AS->>AS: B = A ⊕ h(ID_U ‖ RPW)
+    AS->>AS: V = int(h(h(ID_U ‖ RPW))) mod n0 (fuzzy verifier)
+    AS->>AS: TID ← 128-bit random
+    AS->>AS: store {ID_U, role, class, v, TID_cur = TID, TID_old = ⊥, revoked = 0, failed = 0}
+    Note right of AS: never stores PW_U, RPW or A
+    AS->>SD: {B, V, TID, n0, pk_AS, Q_AS} (secure channel)
+    SD->>SD: card ← {B, V, TID, n0, pk_AS, Q_AS, r}

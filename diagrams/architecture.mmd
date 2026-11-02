@@ -1,0 +1,39 @@
+%% System architecture and trust boundaries
+flowchart LR
+    U(["👤 User U<br/>ID_U, PW_U"])
+
+    subgraph SDbox["Smart Device SD (phone / smartcard)"]
+        SD["Card file<br/>B, V, TID, r, n0, pk_AS, Q_AS"]
+    end
+
+    subgraph Public["Public channel (TCP) — Dolev–Yao attacker: eavesdrop / replay / modify / drop / inject"]
+        ATK{{"🕵 Attacker<br/>proxy :9200"}}
+    end
+
+    subgraph Doors["Classroom door locks"]
+        DL1["DL CSE-101 :9100<br/>ID_DL, K_DL = h(ID_DL ‖ x)"]
+        DL2["DL CSE-102 :9101<br/>own K_DL"]
+    end
+
+    subgraph ASbox["Authentication Server AS :9000 (trusted)"]
+        AS["Verifier + policy engine<br/>x, sk_AS, d_AS"]
+        DB[("SQLite users / doors<br/>ID_U, role, TID_cur, TID_old,<br/>v, revoked, failed_attempts")]
+        POL["policy.json<br/>roles + timetable"]
+        LOG[("access_log.jsonl<br/>ECDSA-signed hash chain")]
+    end
+
+    OFFICE["🏢 Department office<br/>offline secure channel<br/>(registration, revocation)"]
+
+    U -- "ID_U*, PW_U*" --> SD
+    SD <-- "M1, M4, M5, Enc_SK" --> ATK
+    ATK <--> DL1
+    ATK <--> DL2
+    DL1 <-- "M2, M3" --> AS
+    DL2 <-- "M2, M3" --> AS
+    AS --- DB
+    AS --- POL
+    AS --> LOG
+    OFFICE -. "card {B, V, TID, n0, pk_AS, Q_AS}" .-> SD
+    OFFICE -. "{ID_DL, K_DL, pk_AS}" .-> DL1
+    OFFICE -. "{ID_DL, K_DL, pk_AS}" .-> DL2
+    OFFICE -. "DB rows" .-> DB

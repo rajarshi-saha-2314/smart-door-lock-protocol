@@ -1,0 +1,195 @@
+(* =====================================================================
+   CS428 - Secure user authentication for a classroom smart door lock
+   ProVerif model of the login phase (with approved design changes D1-D3)
+
+   Roles   : User (smart device), DoorLock, Server (AS)
+   Channel : c is public (Dolev-Yao); registration uses private channels
+   Crypto  : AES-GCM -> AEAD aenc/adec with associated data
+             h / HMAC / HKDF -> free (one-way) functions
+             XOR mask on the card -> mask/unmask (unmasking never fails)
+             ECDH (D1) -> exp with the usual commutation equation
+   Time    : timestamps are modelled as fresh nonces (no clock)
+   Extra   : the attacker also controls a registered user IDE (knows its
+             password and card) and a compromised door IDDLE (knows K_DL)
+   ===================================================================== *)
+
+free c: channel.
+free regUin: channel [private].
+free regUout: channel [private].
+free regEin: channel [private].
+free regEout: channel [private].
+
+type key.
+type G.
+type exponent.
+
+(* ---------------- primitives ---------------- *)
+fun h2(bitstring, bitstring): bitstring.                       (* h(a || b)               *)
+fun hA(bitstring, bitstring, bitstring): bitstring.            (* A = h(ID_U || x || v)     *)
+fun hSK(bitstring, bitstring, bitstring, bitstring, bitstring, bitstring): bitstring.
+fun mac(bitstring, bitstring): bitstring.                      (* HMAC(k, m)             *)
+fun kdf1(bitstring, G, bitstring): key.                        (* k1 = KDF(A || Z, ...)    *)
+fun kdfU(bitstring, bitstring): key.                           (* k_u = KDF(A, ...)       *)
+fun tokey(bitstring): key [typeConverter].
+
+fun aenc(bitstring, bitstring, key): bitstring.                (* Enc_k(m; aad)          *)
+reduc forall m: bitstring, ad: bitstring, k: key; adec(aenc(m, ad, k), ad, k) = m.
+
+fun mask(bitstring, bitstring): bitstring.                     (* B = A xor h(ID || RPW)   *)
+fun unmask(bitstring, bitstring): bitstring.
+equation forall a: bitstring, k: bitstring; unmask(mask(a, k), k) = a.
+equation forall b: bitstring, k: bitstring; mask(unmask(b, k), k) = b.   (* like XOR: (b xor k) xor k = b *)
+
+const g: G [data].
+fun exp(G, exponent): G.
+equation forall e1: exponent, e2: exponent; exp(exp(g, e1), e2) = exp(exp(g, e2), e1).
+
+(* ---------------- constants and long-term secrets ---------------- *)
+const sM1: bitstring.  const sM3: bitstring.  const sDL: bitstring.
+const sU: bitstring.   const sSess: bitstring.
+const ALLOW: bitstring. const roleF: bitstring. const v1: bitstring.
+
+free xAS: bitstring [private].        (* AS master secret x          *)
+free dAS: exponent [private].         (* AS static ECDH key (D1)     *)
+free PW: bitstring [private].         (* honest user's password      *)
+free IDU: bitstring.                  (* honest user's identity (public, worst case) *)
+free IDDL: bitstring.                 (* honest door                  *)
+free IDE: bitstring.                  (* attacker-controlled user     *)
+free PWE: bitstring.                  (*   ... whose password is public *)
+free IDDLE: bitstring.                (* compromised door             *)
+
+free secretU: bitstring [private].    (* sent under SK by the user  -> secrecy of SK *)
+
+table users(bitstring, bitstring).    (* TID, ID_U   *)
+table doors(bitstring).               (* registered ID_DL *)
+
+(* ---------------- events ---------------- *)
+event UserStarts(bitstring, bitstring, bitstring).              (* ID_U, ID_DL, N1        *)
+event ASAuthUser(bitstring, bitstring, bitstring).              (* ID_U, ID_DL, N1        *)
+event ServerResponds(bitstring, bitstring, bitstring, bitstring).(* ID_U, ID_DL, N1, SK    *)
+event UserAuthServer(bitstring, bitstring, bitstring, bitstring).(* ID_U, ID_DL, N1, SK    *)
+event DoorSendsM2(bitstring, bitstring).                        (* ID_DL, N2              *)
+event ASAuthDoor(bitstring, bitstring).                         (* ID_DL, N2              *)
+event ServerSendsKey(bitstring, bitstring, bitstring).          (* ID_DL, N2, SK          *)
+event DoorAuthServer(bitstring, bitstring, bitstring).          (* ID_DL, N2, SK          *)
+event DoorSendsKey(bitstring, bitstring).                       (* ID_DL, SK              *)
+event UserAcceptsKey(bitstring, bitstring).                     (* ID_DL, SK              *)
+event UserConfirms(bitstring, bitstring).                       (* ID_DL, SK              *)
+event DoorAuthUser(bitstring, bitstring).                       (* ID_DL, SK              *)
+
+(* ---------------- queries ---------------- *)
+(* secrecy *)
+query attacker(secretU).                       (* session key SK, user side  *)
+(* session key SK, door side: the attacker knows the SK of a completed door session only if that
+   session was run by the AS for the attacker's own registered account IDE *)
+query sk: bitstring, n1: bitstring;
+  event(DoorAuthUser(IDDL, sk)) && attacker(sk) ==> event(ServerResponds(IDE, IDDL, n1, sk)).
+query attacker(xAS).                           (* master secret x            *)
+query attacker(PW).                            (* password                   *)
+query attacker(hA(IDU, xAS, v1)).              (* user secret A              *)
+query attacker(h2(IDDL, xAS)).                 (* K_DL of an honest door     *)
+query attacker(dAS).                           (* AS ECDH private key        *)
+
+(* authentication of the user *)
+query n1: bitstring;
+  event(ASAuthUser(IDU, IDDL, n1)) ==> event(UserStarts(IDU, IDDL, n1)).
+(* the door cannot know which user it serves: a completed session is either the honest user's,
+   or one the AS ran for the attacker's own registered account IDE *)
+query sk: bitstring, n1: bitstring;
+  inj-event(DoorAuthUser(IDDL, sk)) ==> inj-event(UserConfirms(IDDL, sk)) || event(ServerResponds(IDE, IDDL, n1, sk)).
+
+(* authentication of the server *)
+query d: bitstring, n1: bitstring, sk: bitstring;
+  inj-event(UserAuthServer(IDU, d, n1, sk)) ==> inj-event(ServerResponds(IDU, d, n1, sk)).
+query n2: bitstring, sk: bitstring;
+  inj-event(DoorAuthServer(IDDL, n2, sk)) ==> inj-event(ServerSendsKey(IDDL, n2, sk)).
+
+(* authentication of the door *)
+query n2: bitstring;
+  event(ASAuthDoor(IDDL, n2)) ==> event(DoorSendsM2(IDDL, n2)).
+query sk: bitstring;
+  inj-event(UserAcceptsKey(IDDL, sk)) ==> inj-event(DoorSendsKey(IDDL, sk)).
+
+(* ---------------- processes ---------------- *)
+let Registration(chin: channel, chout: channel) =
+  in(chin, (idu: bitstring, rpw: bitstring));
+  new TID: bitstring;
+  let A = hA(idu, xAS, v1) in
+  insert users(TID, idu);
+  out(chout, (mask(A, h2(idu, rpw)), TID)).
+
+let UserSession(B: bitstring, TID: bitstring, r: bitstring, QAS: G) =
+  in(c, iddl: bitstring);                                  (* the door the user walks up to *)
+  let A = unmask(B, h2(IDU, h2(PW, r))) in
+  new N1: bitstring; new T1: bitstring; new e: exponent;
+  let E = exp(g, e) in
+  let k1 = kdf1(A, exp(QAS, e), (sM1, TID, T1, E)) in
+  event UserStarts(IDU, iddl, N1);
+  out(c, (TID, T1, iddl, E, aenc((N1, IDU), (TID, T1, iddl, E), k1)));
+  in(c, (CU: bitstring, T3: bitstring, T4: bitstring, AuthDL: bitstring));
+  let (=ALLOW, N2: bitstring, N3: bitstring, TIDnew: bitstring, =T3) = adec(CU, (TID, iddl), kdfU(A, (sM3, N1, T3))) in
+  let SK = hSK(N1, N2, N3, iddl, TID, T3) in
+  event UserAuthServer(IDU, iddl, N1, SK);
+  if AuthDL = mac(SK, (sDL, iddl, TID, T4)) then
+  event UserAcceptsKey(iddl, SK);
+  new T5: bitstring;
+  event UserConfirms(iddl, SK);
+  out(c, (T5, mac(SK, (sU, TID, T5))));                    (* D3: Auth_U over TID *)
+  if iddl = IDDL then out(c, aenc(secretU, sSess, tokey(SK))).
+
+let DoorSession(iddl: bitstring, KDL: bitstring) =
+  in(c, (TID: bitstring, T1: bitstring, =iddl, E: G, C1: bitstring));
+  new N2: bitstring; new T2: bitstring;
+  event DoorSendsM2(iddl, N2);
+  out(c, ((TID, T1, iddl, E, C1), N2, T2, mac(KDL, ((TID, T1, iddl, E, C1), N2, T2, iddl))));
+  in(c, (T3: bitstring, CDL: bitstring, CU: bitstring));
+  let (=ALLOW, SK: bitstring, role: bitstring, =T3) = adec(CDL, (iddl, TID, N2), tokey(KDL)) in
+  event DoorAuthServer(iddl, N2, SK);
+  new T4: bitstring;
+  event DoorSendsKey(iddl, SK);
+  out(c, (CU, T3, T4, mac(SK, (sDL, iddl, TID, T4))));
+  in(c, (T5: bitstring, AuthU: bitstring));
+  if AuthU = mac(SK, (sU, TID, T5)) then
+  event DoorAuthUser(iddl, SK);
+  0.
+
+let ServerSession =
+  in(c, ((TID: bitstring, T1: bitstring, iddl: bitstring, E: G, C1: bitstring), N2: bitstring, T2: bitstring, Tag2: bitstring));
+  get doors(=iddl) in
+  let KDL = h2(iddl, xAS) in
+  if Tag2 = mac(KDL, ((TID, T1, iddl, E, C1), N2, T2, iddl)) then
+  event ASAuthDoor(iddl, N2);
+  get users(=TID, idu: bitstring) in
+  let A = hA(idu, xAS, v1) in
+  let (N1: bitstring, =idu) = adec(C1, (TID, T1, iddl, E), kdf1(A, exp(E, dAS), (sM1, TID, T1, E))) in
+  event ASAuthUser(idu, iddl, N1);
+  new N3: bitstring; new TIDnew: bitstring; new T3: bitstring;
+  let SK = hSK(N1, N2, N3, iddl, TID, T3) in
+  (* TID rotation (users table update) is omitted: TIDnew is named after the session inputs, so
+     re-inserting it makes saturation diverge, and the queried properties do not depend on it. *)
+  event ServerSendsKey(iddl, N2, SK);
+  event ServerResponds(idu, iddl, N1, SK);
+  out(c, (T3,
+          aenc((ALLOW, SK, roleF, T3), (iddl, TID, N2), tokey(KDL)),
+          aenc((ALLOW, N2, N3, TIDnew, T3), (TID, iddl), kdfU(A, (sM3, N1, T3))))).
+
+process
+  out(c, exp(g, dAS));                       (* Q_AS is public *)
+  insert doors(IDDL);
+  insert doors(IDDLE);
+  out(c, h2(IDDLE, xAS));                    (* door IDDLE is compromised: K_DL leaks *)
+  (
+      Registration(regUin, regUout)
+    | Registration(regEin, regEout)
+    | ( new r: bitstring;                    (* honest user registers offline *)
+        out(regUin, (IDU, h2(PW, r)));
+        in(regUout, (B: bitstring, TID: bitstring));
+        !UserSession(B, TID, r, exp(g, dAS)) )
+    | ( new rE: bitstring;                   (* dishonest user: everything leaks *)
+        out(regEin, (IDE, h2(PWE, rE)));
+        in(regEout, (BE: bitstring, TIDE: bitstring));
+        out(c, (BE, TIDE, rE)) )
+    | !DoorSession(IDDL, h2(IDDL, xAS))
+    | !DoorSession(IDDLE, h2(IDDLE, xAS))
+    | !ServerSession
+  )

@@ -1,0 +1,18 @@
+{
+  "rooms": ["CSE-101", "CSE-102", "LAB-3"],
+  "roles": {
+    "admin":   {"doors": "any",   "hours": "any"},
+    "faculty": {"doors": "any",   "hours": {"start": "07:00", "end": "21:00"}},
+    "cr":      {"doors": "class", "hours": "timetable", "grace_minutes": 15},
+    "student": {"doors": "class", "hours": "timetable", "grace_minutes": 0}
+  },
+  "timetable": [
+    {"class": "CSE-4A", "room": "CSE-101", "day": "Mon", "start": "09:00", "end": "10:00"},
+    {"class": "CSE-4A", "room": "CSE-101", "day": "Wed", "start": "09:00", "end": "10:00"},
+    {"class": "CSE-4A", "room": "CSE-101", "day": "Fri", "start": "11:00", "end": "12:00"},
+    {"class": "CSE-4A", "room": "LAB-3",   "day": "Tue", "start": "14:00", "end": "17:00"},
+    {"class": "CSE-4B", "room": "CSE-102", "day": "Mon", "start": "10:00", "end": "11:00"},
+    {"class": "CSE-4B", "room": "CSE-102", "day": "Thu", "start": "09:00", "end": "10:00"},
+    {"class": "CSE-4B", "room": "LAB-3",   "day": "Thu", "start": "14:00", "end": "17:00"}
+  ]
+}

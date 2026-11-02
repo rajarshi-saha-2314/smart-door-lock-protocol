@@ -1,0 +1,25 @@
+%% Desynchronization attack and recovery via TID_old
+sequenceDiagram
+    autonumber
+    participant SD as Smart Device (card TID = TID0)
+    participant ATK as Attacker
+    participant DL as Door Lock
+    participant AS as Authentication Server
+
+    SD->>ATK: M1 {TID0, ...}
+    ATK->>DL: M1
+    DL->>AS: M2
+    AS->>AS: accept TID0 (TID_cur)<br/>TID_old ← TID0, TID_cur ← TID1
+    AS->>DL: M3 (C_U carries TID1)
+    DL->>ATK: M4
+    ATK--xSD: ✂ M4 dropped
+    Note over SD: never learns TID1 → keeps TID0
+    Note over AS: TID_cur = TID1, TID_old = TID0
+
+    SD->>DL: next login: M1 {TID0, ...}
+    DL->>AS: M2
+    AS->>AS: TID0 matches TID_old → accept<br/>TID_old ← TID0, TID_cur ← TID2 (TID1 discarded)
+    AS->>DL: M3 (C_U carries TID2)
+    DL->>SD: M4
+    SD->>SD: card TID ← TID2 → back in sync
+    SD->>DL: M5 → 🔓 unlocked
