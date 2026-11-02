@@ -9,6 +9,7 @@ Operation counts follow Section 3 (with design changes D1-D3) for one successful
 from __future__ import annotations
 
 import csv
+import json
 from pathlib import Path
 
 from benchmarks.primitive_timing import CSV_PATH
@@ -33,7 +34,7 @@ WHERE = {
     "AS": "h(C1) replay cache, K_DL, A, SK (4 h); verify Tag2 (1 hmac); Z = d_AS·E (1 ecm); k1, k_u (2 kdf); "
     "C1 (1 dec); C_DL, C_U (2 enc)",
 }
-ORDER = ["T_h", "T_xor", "T_hmac", "T_kdf", "T_enc", "T_dec", "T_ecm", "T_sig"]
+ORDER = ["T_h", "T_xor", "T_hmac", "T_kdf", "T_enc", "T_dec", "T_ecm", "T_fe", "T_sig"]
 
 # ---------------------------------------------------------------- communication (bits)
 SIZE = {
@@ -89,6 +90,167 @@ def merge(a: dict[str, int], b: dict[str, int]) -> dict[str, int]:
     out = dict(a)
     for k, v in b.items():
         out[k] = out.get(k, 0) + v
+    return out
+
+
+# ---------------------------------------------------------------- comparison with published schemes
+RELATED_PATH = Path(__file__).with_name("related_schemes.json")
+MARK = {"yes": "✔", "no": "✘", "n/r": "n/r"}
+FEATURES = [
+    ("offline_guessing_stolen_device", "Offline guessing with stolen device"),
+    ("mutual_auth", "Mutual auth."),
+    ("anonymity", "User anonymity"),
+    ("untraceability", "Untraceability"),
+    ("revocation", "Revocation"),
+    ("desync", "Desync resistance"),
+    ("forward_secrecy", "Forward secrecy"),
+]
+
+
+def comparison(t: dict[str, float], our_bits: int, our_messages: int) -> list[str]:
+    """Section 4, generated entirely from related_schemes.json so a rerun never loses it."""
+    data = json.loads(RELATED_PATH.read_text(encoding="utf-8"))
+    schemes = data["schemes"]
+    missing = {s for sc in schemes for ent in sc["counts"].values() for s in ent} - set(t)
+    if missing:
+        raise SystemExit(f"timings missing for {sorted(missing)} — rerun `python -m benchmarks.primitive_timing`")
+    ours = {"user": COUNTS["SD"], "server": COUNTS["AS"], "device": COUNTS["DL"]}
+    rows = [(f"[{i}] {s['label']}", s["counts"]) for i, s in enumerate(schemes, 1)]
+    rows.append(("**This protocol**", ours))
+    totals = {name: sum(total_ms(c, t) for c in counts.values()) for name, counts in rows}
+
+    out = [
+        "## 4. Comparison with existing schemes",
+        "",
+        "Four peer-reviewed schemes (2020–2025) were read in full; how they were chosen, every extracted value,",
+        "its location in the paper and our recounts are in [related_schemes.json](related_schemes.json).",
+        "All times below use **this machine's** timings from Section 1, never the papers' own timings.",
+        "",
+        "### 4.1 Computation cost (login + authentication, one session)",
+        "",
+        "| Scheme | User device (symbolic) | User (ms) | Server (symbolic) | Server (ms) "
+        "| Door / sensor (symbolic, ms) | Total (ms) |",
+        "|---|---|---:|---|---:|---|---:|",
+    ]
+    for name, c in rows:
+        u, srv, dev = c["user"], c["server"], c["device"]
+        out.append(
+            f"| {name} | {symbolic(u)} | {total_ms(u, t):.4f} | {symbolic(srv)} | {total_ms(srv, t):.4f} "
+            f"| {symbolic(dev)} ({total_ms(dev, t):.4f}) | {totals[name]:.4f} |"
+        )
+
+    out += [
+        "",
+        "### 4.2 Communication cost (as reported by each paper, under its own field sizes)",
+        "",
+        "| Scheme | Messages | Total bits | Hash / ID / EC-point size assumed (bits) |",
+        "|---|---:|---:|---|",
+    ]
+    for i, s in enumerate(schemes, 1):
+        out.append(f"| [{i}] {s['label']} | {s['messages']} | {s['comm_bits']} | {s['sizes_short']} |")
+    out.append(f"| **This protocol** | {our_messages} | {our_bits} | 256 / 128 / 264 (compressed) |")
+
+    out += [
+        "",
+        "### 4.3 Security features",
+        "",
+        "| Scheme | " + " | ".join(label for _, label in FEATURES) + " | Formal verification |",
+        "|---|" + "---|" * len(FEATURES) + "---|",
+    ]
+    for i, s in enumerate(schemes, 1):
+        cells = [MARK[s["security"][k]["value"]] for k, _ in FEATURES]
+        out.append(f"| [{i}] {s['label']} | " + " | ".join(cells) + f" | {s['security']['formal']} |")
+    o = data["ours"]["security"]
+    out.append("| **This protocol** | " + " | ".join(MARK[o[k]["value"]] for k, _ in FEATURES) + f" | {o['formal']} |")
+    out += [
+        "",
+        "✔ = claimed by the paper (for our protocol: verified by ProVerif and/or the attack scripts); "
+        "✘ = not provided; n/r = not reported or not analysed by the paper. "
+        "Claims of the other schemes are their authors' and were not re-verified here.",
+        "",
+        "### Notes",
+        "",
+    ]
+
+    notes = [
+        "**Primitive mappings.** "
+        + "; ".join(
+            f"[{i}] " + ", ".join(f"{k} → {v}" for k, v in s["primitive_map"].items()) for i, s in enumerate(schemes, 1)
+        )
+        + ". Our T_h is SHA-256 and T_ecm is a P-256 scalar multiplication (OpenSSL via `cryptography`).",
+        "**T_fe** is a code-offset fuzzy extractor `Rep()` built on the `reedsolo` Reed–Solomon decoder "
+        "(pure Python), so it is slow relative to the C-backed primitives; the papers themselves assume "
+        "T_fe ≈ T_ecm. It only affects [1] and [3].",
+        "**XOR** is not counted for the published schemes (none of the papers count it); our row includes "
+        f"1T_xor ({t['T_xor']:.4f} ms).",
+        "**Our row**: user = SD, server = AS, door = DL; the AS's audit-log signature (1T_h + 1T_sig) is excluded "
+        "because no other scheme keeps a signed log.",
+    ]
+    for i, s in enumerate(schemes, 1):
+        verdict = "matches the paper" if s["recount_matches_paper"] else "**differs from the paper**"
+        pr = s["paper_reported"]
+        reported = (
+            f"paper: user {pr['user']}, server {pr['server']}, device {pr['device']}, total {pr['total']} "
+            f"({pr['where']})"
+        )
+        recount = s["recount_notes"]
+        notes.append(f"**[{i}] counts** — {reported}; our recount from the protocol steps {verdict}. {recount}")
+    for i, s in enumerate(schemes, 1):
+        extra = f" {s['comm_notes']}" if s["comm_notes"] else ""
+        notes.append(f"**[{i}] communication** — {s['comm_where']}; sizes: {s['field_sizes']}.{extra}")
+    for i, s in enumerate(schemes, 1):
+        for k, label in FEATURES:
+            note = s["security"][k].get("note")
+            if note:
+                notes.append(f"**[{i}] {label.lower()}** — {note}")
+    for k, label in FEATURES:
+        if o[k]["value"] != "yes":
+            notes.append(f"**This protocol, {label.lower()}** — {o[k]['where']}.")
+    out += [f"{n}. {text}" for n, text in enumerate(notes, 1)]
+
+    # interpretation — numbers computed, so it stays consistent with the tables
+    by = {s["key"]: (f"[{i}] {s['label']}", s) for i, s in enumerate(schemes, 1)}
+    me = totals["**This protocol**"]
+    oh_name = by["oh2021"][0]
+    ecc = [by["zhao2022"][0], by["sudhakar2025"][0]]
+    ecm = {name: sum(c.get("T_ecm", 0) for c in counts.values()) for name, counts in rows}
+    dev_ms = {name: total_ms(counts["device"], t) for name, counts in rows}
+    largest_comm = our_bits > max(s["comm_bits"] for s in schemes)
+    out += [
+        "",
+        "### Interpretation",
+        "",
+        f"On this machine one login costs {me:.3f} ms across all three entities for our protocol, against "
+        f"{totals[oh_name]:.3f} ms for the hash-only scheme {oh_name}, {totals[by['banerjee2020'][0]]:.3f} ms for "
+        f"{by['banerjee2020'][0]} (mostly its fuzzy extractor), and {totals[ecc[0]]:.3f} / {totals[ecc[1]]:.3f} ms "
+        f"for the ECC schemes {ecc[0]} and {ecc[1]}. "
+        f"Our 3 EC scalar multiplications, all added by design change D1, make us about "
+        f"{me / totals[oh_name]:.0f}× more expensive than {oh_name}, which has no public-key step at all; "
+        "that step is what stops an attacker holding a stolen device from confirming password guesses against a "
+        f"recorded login, whereas {oh_name} relies on the user's identity staying unguessable. "
+        f"Among the ECC-based designs ours needs the fewest EC multiplications ({ecm['**This protocol**']} versus "
+        f"{ecm[ecc[0]]} and {ecm[ecc[1]]}), and our door lock does only symmetric work "
+        f"({dev_ms['**This protocol**']:.4f} ms) where their sensor nodes perform EC multiplications "
+        f"({dev_ms[ecc[0]]:.4f} and {dev_ms[ecc[1]]:.4f} ms). "
+        + (
+            f"Our communication cost ({our_bits} bits) is the highest of the five, mainly because we size every "
+            "hash/MAC at 256 bits (SHA-256) where the papers assume 128–160 bits, the door forwards the whole M1 "
+            "inside M2, and each AES-GCM ciphertext carries a 96-bit nonce and a 128-bit tag. "
+            if largest_comm
+            else f"Our communication cost is {our_bits} bits. "
+        )
+        + "The security columns for the other schemes are their authors' claims; ours are checked by ProVerif and "
+        "the attack scripts, and we do not offer forward secrecy against compromise of the AS secrets.",
+        "",
+        "### References",
+        "",
+    ]
+    out += [
+        f"{i}. {s['authors']}, “{s['title']},” *{s['venue']}*, {s['year']}. "
+        f"doi:[{s['doi']}](https://doi.org/{s['doi']})"
+        for i, s in enumerate(schemes, 1)
+    ]
+    out.append("")
     return out
 
 
@@ -161,21 +323,8 @@ def main() -> None:
         "The implementation's wire format (JSON + base64, 64-bit timestamps, length-prefixed fields) is larger;",
         "the figures above are the protocol-level sizes conventionally used for comparison.",
         "",
-        "## 4. Comparison with existing schemes",
-        "",
-        "| Scheme | User / SD cost | Server cost | Total comm. (bits) | Messages "
-        "| Resists stolen-device offline guessing |",
-        "|---|---|---|---:|---:|---|",
-        f"| **This protocol** | {symbolic(COUNTS['SD'])} | {symbolic(COUNTS['AS'])} | {total_bits} | 5 | Yes (D1) |",
-        "| TODO: fill from cited paper [1] | TODO | TODO | TODO | TODO | TODO |",
-        "| TODO: fill from cited paper [2] | TODO | TODO | TODO | TODO | TODO |",
-        "| TODO: fill from cited paper [3] | TODO | TODO | TODO | TODO | TODO |",
-        "| TODO: fill from cited paper [4] | TODO | TODO | TODO | TODO | TODO |",
-        "",
-        "To compare fairly, convert each scheme's operation counts to ms with the timings in Section 1",
-        "(do not mix in timings measured on other machines).",
-        "",
     ]
+    lines += comparison(t, total_bits, len(MESSAGES))
     OUT.write_text("\n".join(lines), encoding="utf-8")
     print("\n".join(lines))
     print(f"→ {OUT}")

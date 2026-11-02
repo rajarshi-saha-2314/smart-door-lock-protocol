@@ -2,3 +2,4 @@ cryptography>=42
 pytest>=8
 rich>=13
 ruff>=0.5
+reedsolo>=1.7  # benchmarks only: fuzzy-extractor timing for the related-scheme comparison

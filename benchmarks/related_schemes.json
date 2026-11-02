@@ -1,0 +1,404 @@
+{
+  "_about": "Raw extraction for the comparison in benchmarks/results.md Section 4. Every value was read from the paper's full text (JATS XML from the Europe PMC REST API, https://www.ebi.ac.uk/europepmc/webservices/rest/<PMCID>/fullTextXML) during this task. Login + authentication phase only. 'paper_reported' is copied from the paper; 'counts' is what the comparison uses (our recount from the protocol steps; 'recount_matches_paper' says whether they agree). Security values: 'yes' = claimed/supported by the paper, 'no' = the paper's own text shows it is not provided, 'n/r' = not reported/analysed. Quotes are verbatim and short.",
+  "_retrieved": "2026-11-02",
+  "selection": {
+    "criteria": "Peer-reviewed, 2018+, two- or three-factor user authentication with a gateway/server in smart home / IoT / WSN, full text readable, paper contains its own computation and communication cost analysis. Two hash-based and two ECC-based schemes.",
+    "shortlisted_not_selected": [
+      {
+        "paper": "Asghar et al., Sensors 23(16):7268, 2023, doi:10.3390/s23167268",
+        "reason": "Readable and relevant (hash + symmetric, ProVerif), but the user model relies on location information rather than a password + smart card; Banerjee et al. and Oh et al. match our factor model more closely."
+      },
+      {
+        "paper": "Haseeb-ur-rehman et al. (LR-AKAP), Sensors 22(18):6902, 2022, doi:10.3390/s22186902",
+        "reason": "Readable; 6 messages with an online trusted authority in the login phase, a different architecture from ours."
+      },
+      {
+        "paper": "Shin and Kwon, Sensors 19(9):2012, 2019, doi:10.3390/s19092012",
+        "reason": "Readable; WSN smart-home three-factor hash scheme, very similar profile to Banerjee et al. (kept one of the two)."
+      },
+      {
+        "paper": "Huang, Scientific Reports 14:1787, 2024, doi:10.1038/s41598-024-52134-z",
+        "reason": "Readable ECC three-factor WSN scheme, but much heavier (12Tecm + 48Th + 1TFE) and further from our setting than Zhao et al."
+      },
+      {
+        "paper": "Wu et al., Sensors 22(23):9174, 2022, doi:10.3390/s22239174",
+        "reason": "PUF-based; a PUF cannot be timed in software on this machine."
+      },
+      {
+        "paper": "Patel, arXiv:2207.10353, 2022",
+        "reason": "No peer-reviewed venue stated on arXiv or in the paper."
+      },
+      {
+        "paper": "Mathematics 11(9):2123, 2023 and Sensors 23(12):5419, 2023 (MDPI)",
+        "reason": "Full text could not be retrieved (MDPI returned HTTP 403 to automated fetches; not indexed in Europe PMC)."
+      }
+    ]
+  },
+  "schemes": [
+    {
+      "key": "banerjee2020",
+      "label": "Banerjee et al. 2020",
+      "authors": "S. Banerjee, V. Odelu, A. K. Das, S. Chattopadhyay, Y. Park",
+      "title": "An Efficient, Anonymous and Robust Authentication Scheme for Smart Home Environments",
+      "venue": "Sensors, vol. 20, no. 4, art. 1215",
+      "year": 2020,
+      "doi": "10.3390/s20041215",
+      "pmcid": "PMC7070978",
+      "setting": "Smart home: user U (smart card + terminal), gateway node GWN, smart device SD, registration authority RA (offline)",
+      "factors": "password + smart card + biometric (fuzzy extractor)",
+      "class": "hash + fuzzy extractor",
+      "mapping": {
+        "user": "U",
+        "server": "GWN",
+        "device": "SD"
+      },
+      "paper_reported": {
+        "user": "10Th+1Tb",
+        "server": "10Th",
+        "device": "4Th",
+        "total": "24Th+1Tb",
+        "where": "Section 6.2, Table 2 ('Computation costs comparison')"
+      },
+      "counts": {
+        "user": {
+          "T_h": 10,
+          "T_fe": 1
+        },
+        "server": {
+          "T_h": 10
+        },
+        "device": {
+          "T_h": 4
+        }
+      },
+      "recount_matches_paper": true,
+      "recount_notes": "Section 4.3 Steps 1-5. U: Rep(Bio,tau) [Tb]; h(ID||PW||sigma), A2*, K_UG, V1 [4h]; Step 5: K_UG', V4*, SK = h(h(ID||Ru||C1)||Rd||SID) [2h], A2', A3' [2h] (A1' reuses h(ID||PW||sigma)) = 10h. GWN: K_UG = h(ID||h(Rg||K)) [2h], V1*, K_GS = h(SID||h(K)) [1h with h(K) precomputed], C1, C2, V2, V3*, K_UG', V4 = 10h (11h if h(K) is recomputed). SD: V2*, SK, h(SK), V3 = 4h. Step 1 says 'generates two random numbers R1 and w' but then uses Ru and never w (notation slip).",
+      "primitive_map": {
+        "Th (hash, SHA-1 assumed in the paper)": "T_h (SHA-256)",
+        "Tb (fuzzy extractor Gen/Rep)": "T_fe"
+      },
+      "messages": 4,
+      "messages_where": "Section 6.1: <DIDu,M1,V1>, <M2,V2>, <M3,V3>, <M4,V4>",
+      "comm_bits": 1888,
+      "comm_where": "Section 6.1 and Table 1 ('(68 + 40 +56 +72) = 236' bytes)",
+      "field_sizes": "'an ECC point is 320 bits, hash digest (assuming SHA-1 hashing algorithm is applied) is 160 bits, nonces as well as identities are 128 bits long' (Section 6.1)",
+      "comm_notes": "M1 is written as '(128+(128+126)+160)=544 bits'; the terms as printed sum to 542. The reported total 1888 bits is used.",
+      "security": {
+        "offline_guessing_stolen_device": {
+          "value": "yes",
+          "where": "Table 3, V7 'resist off-line password guessing attack' = ☑",
+          "note": "Three-factor: the card verifier A2 = h(DIDu||IDu||sigma_u||PWu) also needs the biometric key sigma_u."
+        },
+        "mutual_auth": {
+          "value": "yes",
+          "where": "Section 1.1: 'establish a session key SK after“ mutual authentication between U, SD and GWN ”'"
+        },
+        "anonymity": {
+          "value": "yes",
+          "where": "Table 3, V1 'user anonymity' = ☑"
+        },
+        "untraceability": {
+          "value": "yes",
+          "where": "Table 3, V3 'untraceability' = ☑"
+        },
+        "revocation": {
+          "value": "yes",
+          "where": "Section 4.5 'Smart Card Revocation Phase'"
+        },
+        "desync": {
+          "value": "no",
+          "where": "Section 4.3, Remark 1: blocking <M4,V4> means 'the subsequent login attempts by the user U will fail'",
+          "note": "The paper suggests keeping old DIDu and Rg at the GWN as a fix, but it is not part of the specified protocol."
+        },
+        "forward_secrecy": {
+          "value": "n/r",
+          "where": "not claimed for the proposed scheme (Table 3 has no forward-secrecy column)"
+        },
+        "formal": "ROR model proof + AVISPA (Section 5.1, 5.2)"
+      },
+      "sizes_short": "160 / 128 / 320"
+    },
+    {
+      "key": "oh2021",
+      "label": "Oh et al. 2021",
+      "authors": "J. Oh, S. Yu, J. Lee, S. Son, M. Kim, Y. Park",
+      "title": "A Secure and Lightweight Authentication Protocol for IoT-Based Smart Homes",
+      "venue": "Sensors, vol. 21, no. 4, art. 1488",
+      "year": 2021,
+      "doi": "10.3390/s21041488",
+      "pmcid": "PMC7924604",
+      "setting": "Smart home: mobile user MU (mobile device), home gateway HGW, smart device SD, registration authority RA (offline)",
+      "factors": "identity + password + mobile device (two-factor)",
+      "class": "hash only",
+      "mapping": {
+        "user": "MU",
+        "server": "HGW",
+        "device": "SD"
+      },
+      "paper_reported": {
+        "user": "n/r",
+        "server": "n/r",
+        "device": "n/r",
+        "total": "42Th",
+        "where": "Section 8.1, Table 3 ('Ours | 42Th | 0.0168 ms'); no per-entity split"
+      },
+      "counts": {
+        "user": {
+          "T_h": 18
+        },
+        "server": {
+          "T_h": 16
+        },
+        "device": {
+          "T_h": 8
+        }
+      },
+      "recount_matches_paper": true,
+      "recount_notes": "Section 6.3 Steps 1-6, counting every hash written (no reuse of intermediate hashes), which reproduces the paper's total of 42Th. MU: h(ID||PW), HPW, A2*, h(r||HPW), h(RID||HPW), h(PID||RID||K), h(ID||RN), h(K||RN), V_MU [9h]; Step 5: PID_new, h(RID||RN), V_GSD*, h(ID||RN), SK, RID_new, h(r||HPW), h(RID_new||HPW), M6 [9h] = 18h. HGW: h(PID||RID||K), V_MU*, M2, h(PID_SD||K_GSD||r_SD), h(K||RN), h(ID_G||RN_G), h(K_GSD||r_SD), V_MUG [8h]; Step 4: h(PID_SD||K_GSD||r_SD), V_SD*, SK, PID_new, RID_new, h(RID||RN), V_GSD [7h]; Step 6: M6* [1h] = 16h. SD: h(ID_SD||K_SD), h(r_SD||K_SD), h(PID_SD||K_GSD||r_SD), V_MUG*, h(K_GSD||r_SD), h(ID_SD||RN_SD), SK, V_SD = 8h. With reuse of repeated hashes the total would be 39h. The HGW's SK formula in Step 4 has a missing h( (notation slip).",
+      "primitive_map": {
+        "Th": "T_h"
+      },
+      "messages": 5,
+      "messages_where": "Section 8.2: {PID,M1,C1,V_MU}, {PID,M3,C2,V_MUG}, {M4,V_SD}, {M5,V_GSD}, M6",
+      "comm_bits": 2080,
+      "comm_where": "Section 8.2 and Table 4 ('(640 + 640 + 320 + 320 + 160) = 2080 bits')",
+      "field_sizes": "'an ECC point, symmetric key encryption/decryption, hash function, random number, identity, and timestamp are 320, 256, 160, 160, 128, and 32 bits' (Section 8.2)",
+      "comm_notes": "The text lists {M5,VGSD} as '20' bits while Table 4 uses 320; the table's total (2080) is consistent with 320 and is used.",
+      "security": {
+        "offline_guessing_stolen_device": {
+          "value": "yes",
+          "where": "Section 7.1.6 and Table 5 'Off-line guessing attack' = ∘ (secure)",
+          "note": "The argument is that 'A needs to guess both IDMU and PWMU'. The device stores A2 = h(ID||PW||r||HPW), an exact verifier of the (ID, PW) pair, so resistance depends on the identity being unguessable (our observation, not a published attack)."
+        },
+        "mutual_auth": {
+          "value": "yes",
+          "where": "Table 5 'Mutual authentication' = ∘; BAN logic (Section 9)"
+        },
+        "anonymity": {
+          "value": "yes",
+          "where": "Table 5 'Anonymity' = ∘"
+        },
+        "untraceability": {
+          "value": "yes",
+          "where": "Table 5 'Untraceability' = ∘"
+        },
+        "revocation": {
+          "value": "n/r",
+          "where": "no revocation or re-registration phase in Section 6"
+        },
+        "desync": {
+          "value": "yes",
+          "where": "Section 7.1.10 and Table 5 'Desynchronization attack' = ∘ (HGW keeps old and new PID until M6 is verified)"
+        },
+        "forward_secrecy": {
+          "value": "yes",
+          "where": "Section 7.1.11 and Table 5 'Perfect forward secrecy' = ∘"
+        },
+        "formal": "BAN logic + ROR model + AVISPA (Section 9)"
+      },
+      "sizes_short": "160 / 128 / 320"
+    },
+    {
+      "key": "zhao2022",
+      "label": "Zhao et al. 2022",
+      "authors": "X. Zhao, D. Li, H. Li",
+      "title": "Practical Three-Factor Authentication Protocol Based on Elliptic Curve Cryptography for Industrial Internet of Things",
+      "venue": "Sensors, vol. 22, no. 19, art. 7510",
+      "year": 2022,
+      "doi": "10.3390/s22197510",
+      "pmcid": "PMC9572988",
+      "setting": "Industrial IoT: user Ui (smart card + terminal), home gateway HGWN, sensor SNj (Case-1, single gateway; the foreign-gateway Case-2 is not used)",
+      "factors": "password + smart card + biometric (fuzzy extractor)",
+      "class": "ECC + fuzzy extractor",
+      "mapping": {
+        "user": "Ui",
+        "server": "HGWN",
+        "device": "SNj"
+      },
+      "paper_reported": {
+        "user": "9Th+1Tfe+3Tecm",
+        "server": "8Th+2Tecm",
+        "device": "5Th+3Tecm",
+        "total": "n/r symbolically (the Total column gives 0.16094 s; the per-entity entries sum to 22Th+1Tfe+8Tecm)",
+        "where": "Section 5.3, Table 5 ('Ours | Case-1')"
+      },
+      "counts": {
+        "user": {
+          "T_h": 9,
+          "T_fe": 1,
+          "T_ecm": 3
+        },
+        "server": {
+          "T_h": 8,
+          "T_ecm": 2
+        },
+        "device": {
+          "T_h": 5,
+          "T_ecm": 3
+        }
+      },
+      "recount_matches_paper": true,
+      "recount_notes": "Sections 3.3 and 3.4.1. Ui: Rep [Tfe]; HID, HPW, B' [3h]; D1 = aP, D2 = aKh [2 ecm]; h(D2) for M1 and again for M2, M3 [3h]; Step 5: M8', SK' = h(D1||D3||aD3) [1h + 1 ecm], M7' [1h] = 9h + 3ecm (8h if h(D2) is reused). HGWN: D2' = kh*D1 [ecm], h(D2') x2, Ah', M3', h(Ags||T2), M5 [6h]; Step 4: D4' = kh*D3 [ecm], M6', M8 [2h] = 8h + 2ecm. SNj: h(Ags||T2), M5' [2h]; D3 = bP, D4 = bKh, bD1 [3 ecm]; SK, M6, M7 [3h] = 5h + 3ecm.",
+      "primitive_map": {
+        "Th (SHA-1 in the paper's sizes)": "T_h (SHA-256)",
+        "Tecm (ECC point multiplication)": "T_ecm (P-256)",
+        "Tfe (fuzzy extractor)": "T_fe"
+      },
+      "messages": 4,
+      "messages_where": "Section 3.4.1: {M1,M2,M3,D1,T1}, {M4,M5,D1,T2}, {M6,M7,D3,T3}, {M7,M8,D3,T4}",
+      "comm_bits": 2848,
+      "comm_where": "Section 5.2, Table 3 ('Ours | Case-1 | 4 | 2848')",
+      "field_sizes": "'the identity, random number, hash digest, ECC point, and timestamp were 160 bits, 160 bits, 160 bits, 320 bits, and 32 bits' (Section 5.2)",
+      "comm_notes": "",
+      "security": {
+        "offline_guessing_stolen_device": {
+          "value": "yes",
+          "where": "Section 4.3.6 and Table 2 'Stolen smart card attack' = ✓: 'there is no chance for an adversary to get the password'",
+          "note": "Three-factor: the card verifier Bi needs the biometric key sigma_i."
+        },
+        "mutual_auth": {
+          "value": "yes",
+          "where": "Section 4.3.1 and Table 2 'Mutual authentication' = ✓"
+        },
+        "anonymity": {
+          "value": "yes",
+          "where": "Section 4.3.4 and Table 2 'User anonymity' = ✓"
+        },
+        "untraceability": {
+          "value": "yes",
+          "where": "Section 4.3.4 and Table 2 'Untraceability property' = ✓"
+        },
+        "revocation": {
+          "value": "n/r",
+          "where": "no revocation phase (Sections 3.1-3.5)"
+        },
+        "desync": {
+          "value": "yes",
+          "where": "Section 4.3.9: 'All participants in the protocol are not required to update any information'"
+        },
+        "forward_secrecy": {
+          "value": "yes",
+          "where": "Section 4.3.3 and Table 2 'Forward and backward secrecy' = ✓"
+        },
+        "formal": "ROR-style security proof under ECDHP + Scyther (Sections 4.1, 4.2)"
+      },
+      "sizes_short": "160 / 160 / 320"
+    },
+    {
+      "key": "sudhakar2025",
+      "label": "Sudhakar et al. 2025",
+      "authors": "T. Sudhakar, R. Praveen, V. Natarajan",
+      "title": "An efficient ECC and fuzzy verifier based user authentication protocol for IoT enabled WSNs",
+      "venue": "Scientific Reports, vol. 15, art. 9974",
+      "year": 2025,
+      "doi": "10.1038/s41598-025-94550-9",
+      "pmcid": "PMC11929806",
+      "setting": "IoT-enabled WSN: user Ui (smart card), sensor node Sj (relays to the gateway, like our door lock), gateway GWN",
+      "factors": "identity + password + smart card (two-factor), fuzzy verifier FV_i = h(h(ID) xor h(PW||b)) mod n0",
+      "class": "ECC + fuzzy verifier",
+      "mapping": {
+        "user": "Ui",
+        "server": "GWN",
+        "device": "Sj"
+      },
+      "paper_reported": {
+        "user": "n/r",
+        "server": "n/r",
+        "device": "n/r",
+        "total": "23T_H+4T_M",
+        "where": "Section 'Computational cost comparison', Table 8 ('Proposed scheme | 23T_H+4T_M | ≈ 8.9569'); no per-entity split"
+      },
+      "counts": {
+        "user": {
+          "T_h": 9,
+          "T_ecm": 3
+        },
+        "server": {
+          "T_h": 9,
+          "T_ecm": 1
+        },
+        "device": {
+          "T_h": 5,
+          "T_ecm": 2
+        }
+      },
+      "recount_matches_paper": false,
+      "recount_notes": "Sections 'Login' and 'Authentication and key agreement'. Ui: FV* = h(h(ID) xor h(PW||b)) [3h], x = h(k_i||x_i||n1), C1, h1 [3h], X = xP, K1 = xQ [2 ecm]; AK5: k_ij, h4 [2h], SK = h(xY||k_ij||s_j) [1h + 1 ecm] = 9h + 3ecm. GWN: k_j, s_j, h2*, ID_i = C1 xor h(K2||...), k_i, h1*, k_ij, h(SID||k_j||s_j), h3 [9h], K2 = kX [1 ecm] = 9h + 1ecm. Sj: h2, h(SID||k_j||s_j), h3*, SK, h4 [5h], Y = yP, yX [2 ecm] = 5h + 2ecm. Hashes: 23, matching the paper. EC scalar multiplications: 6 (xP, xQ, xY, kX, yP, yX) versus 4T_M in Table 8. We use our count of 6.",
+      "primitive_map": {
+        "T_H": "T_h (SHA-256)",
+        "T_M (EC scalar multiplication)": "T_ecm (P-256)"
+      },
+      "messages": 4,
+      "messages_where": "M1 = {C1,X,h1,n1} (Ui to Sj), M2 (Sj to GWN), M3 = {C3,h3} (GWN to Sj), M4 = {Y,h4} (Sj to Ui)",
+      "comm_bits": 2496,
+      "comm_where": "Section 'Communication cost comparison', Table 6 ('Proposed scheme | 704 | 1088 | 256 | 448 | ... | 4 | 2496')",
+      "field_sizes": "'n_0 is 32-bits, and size of ID_i, PW_i, h(·), output of symmetric encryption and random numbers be 128-bits, Elliptic curve points are 160 bits'",
+      "comm_notes": "The stated EC point size (160 bits) conflicts with the per-message sums, which count X as 320 bits; the reported total 2496 bits is used.",
+      "security": {
+        "offline_guessing_stolen_device": {
+          "value": "yes",
+          "where": "Section 'Off-line password guessing attack' (adversary has the card and 'one of the prior valid login request messages') and Table 9 SA1 = ✔, SA8 = ✔"
+        },
+        "mutual_auth": {
+          "value": "yes",
+          "where": "Table 9 SF1 'Mutual Authentication' = ✔"
+        },
+        "anonymity": {
+          "value": "yes",
+          "where": "Table 9 SF2 'User Anonymity' = ✔"
+        },
+        "untraceability": {
+          "value": "yes",
+          "where": "Section 'User anonymity': '...causes identity untraceable and ensures user anonymity'"
+        },
+        "revocation": {
+          "value": "yes",
+          "where": "Section 'Sound repairability' and Table 9 SF5 = ✔ (card re-issue with a new r_i)"
+        },
+        "desync": {
+          "value": "n/r",
+          "where": "not analysed (the protocol keeps no per-session state to desynchronize)"
+        },
+        "forward_secrecy": {
+          "value": "yes",
+          "where": "Section 'Perfect forward secrecy' and Table 9 SF3 = ✔"
+        },
+        "formal": "ROR model proof only (Section 'Formal security proof of the proposed protocol'); the ProVerif/BAN mentions in the paper refer to other schemes"
+      },
+      "sizes_short": "128 / 128 / 160 stated (320 used in the sums)"
+    }
+  ],
+  "ours": {
+    "security": {
+      "offline_guessing_stolen_device": {
+        "value": "yes",
+        "where": "design change D1; ProVerif weaksecret PW true (formal/guessing_stolen_card.pv); attacks/stolen_card.py"
+      },
+      "mutual_auth": {
+        "value": "yes",
+        "where": "ProVerif injective correspondences (formal/door_lock.pv)"
+      },
+      "anonymity": {
+        "value": "yes",
+        "where": "ID_U only inside C1; attacks/traceability.py"
+      },
+      "untraceability": {
+        "value": "yes",
+        "where": "TID rotates every session; caveat: repeatedly dropping M4 makes the user reuse a TID"
+      },
+      "revocation": {
+        "value": "yes",
+        "where": "revoked flag + card re-issue with v <- v+1 (design change D2)"
+      },
+      "desync": {
+        "value": "yes",
+        "where": "TID_old accepted; attacks/desync_attack.py, tests/test_desync.py"
+      },
+      "forward_secrecy": {
+        "value": "no",
+        "where": "partial only: leaking a user's card + password (A) does not expose past session keys (Z needs d_AS), but leaking the AS secrets (x, d_AS) or a door's K_DL does (SK is in C_DL)"
+      },
+      "formal": "ProVerif (13 queries + weaksecret) + executable attack suite"
+    }
+  }
+}

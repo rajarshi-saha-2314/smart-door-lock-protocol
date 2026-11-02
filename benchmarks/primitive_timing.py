@@ -15,11 +15,37 @@ from collections.abc import Callable
 from pathlib import Path
 
 import cryptography
+import reedsolo
 
 from common import crypto_utils as cu
 from common.console import ensure_utf8_stdio
 
 CSV_PATH = Path(__file__).with_name("primitive_timing.csv")
+
+# Fuzzy extractor (only needed to price schemes we compare against; our protocol has no biometrics).
+# Code-offset construction (Dodis et al.) over a Reed-Solomon code from the maintained `reedsolo` library:
+#   Gen(w):      k <- random 16 B, c = RS.encode(k), helper P = w xor c, R = h(k)
+#   Rep(w', P):  k = RS.decode(w' xor P), R = h(k)
+FE_MSG, FE_NSYM, FE_ERRORS = 16, 32, 8  # RS(48,16) corrects up to 16 byte errors; the noisy reading has 8
+
+
+def fuzzy_extractor() -> tuple[Callable[[], bytes], str]:
+    rs = reedsolo.RSCodec(FE_NSYM)
+    w = cu.rand(FE_MSG + FE_NSYM)  # enrolled biometric template (384 bits)
+    k = cu.rand(FE_MSG)
+    P = cu.xor(w, bytes(rs.encode(k)))  # public helper data
+    noisy = bytearray(w)
+    for i in range(FE_ERRORS):
+        noisy[i * 5] ^= 0xFF  # a fresh reading with 8 differing bytes
+    w_prime = bytes(noisy)
+
+    def rep() -> bytes:
+        decoded = rs.decode(cu.xor(w_prime, P))[0]
+        return cu.h(bytes(decoded))
+
+    assert rep() == cu.h(k)
+    desc = f"Fuzzy extractor Rep(): code-offset, RS({FE_MSG + FE_NSYM},{FE_MSG}) via reedsolo, {FE_ERRORS} byte errors"
+    return rep, desc
 
 
 # symbol used in the cost formulas → (description, function)
@@ -30,6 +56,7 @@ def primitives() -> dict[str, tuple[str, Callable[[], object]]]:
     sig = cu.ecdsa_sign(sk, m64)
     d_AS, Q_AS = cu.ecdh_keygen()
     a, b = cu.rand(32), cu.rand(32)
+    fe_rep, fe_desc = fuzzy_extractor()
     return {
         "T_h": ("SHA-256, 64-byte input", lambda: cu.h(m64)),
         "T_hmac": ("HMAC-SHA256, 64-byte message", lambda: cu.HMAC(k32, m64)),
@@ -41,6 +68,7 @@ def primitives() -> dict[str, tuple[str, Callable[[], object]]]:
         "T_ver": ("ECDSA P-256 verify", lambda: cu.ecdsa_verify(sk.public_key(), sig, m64)),
         "T_xor": ("XOR of two 32-byte strings", lambda: cu.xor(a, b)),
         "T_rand": ("128-bit random nonce (secrets)", lambda: cu.rand(16)),
+        "T_fe": (fe_desc, fe_rep),
     }
 
 

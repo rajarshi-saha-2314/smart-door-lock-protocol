@@ -1,12 +1,13 @@
 # runs=1000; Intel64 Family 6 Model 189 Stepping 1, GenuineIntel; 8 CPUs; Windows 11; Python 3.13.9; cryptography 46.0.3
 symbol,primitive,mean_ms,stdev_ms
-T_h,"SHA-256, 64-byte input",0.001432,0.000206
-T_hmac,"HMAC-SHA256, 64-byte message",0.001899,0.000205
-T_kdf,"HKDF-SHA256, 32-byte output",0.004095,0.001945
-T_enc,"AES-256-GCM encrypt, 64-byte plaintext",0.001698,0.000352
-T_dec,"AES-256-GCM decrypt + verify, 64-byte plaintext",0.001520,0.000277
-T_ecm,P-256 ECDH (key generation or shared secret),0.091216,0.045067
-T_sig,ECDSA P-256 sign,0.023338,0.004915
-T_ver,ECDSA P-256 verify,0.073717,0.012568
-T_xor,XOR of two 32-byte strings,0.002224,0.000203
-T_rand,128-bit random nonce (secrets),0.000221,0.000059
+T_h,"SHA-256, 64-byte input",0.001121,0.000062
+T_hmac,"HMAC-SHA256, 64-byte message",0.001690,0.000189
+T_kdf,"HKDF-SHA256, 32-byte output",0.003844,0.001340
+T_enc,"AES-256-GCM encrypt, 64-byte plaintext",0.001661,0.000135
+T_dec,"AES-256-GCM decrypt + verify, 64-byte plaintext",0.001569,0.000170
+T_ecm,P-256 ECDH (key generation or shared secret),0.092315,0.082909
+T_sig,ECDSA P-256 sign,0.021812,0.004310
+T_ver,ECDSA P-256 verify,0.077425,0.083216
+T_xor,XOR of two 32-byte strings,0.001910,0.000143
+T_rand,128-bit random nonce (secrets),0.002037,0.001883
+T_fe,"Fuzzy extractor Rep(): code-offset, RS(48,16) via reedsolo, 8 byte errors",0.833768,1.189111

@@ -8,28 +8,29 @@ Machine: runs=1000; Intel64 Family 6 Model 189 Stepping 1, GenuineIntel; 8 CPUs;
 
 | Symbol | Primitive | Mean (ms) |
 |---|---|---:|
-| T_h | SHA-256, 64-byte input | 0.0014 |
-| T_hmac | HMAC-SHA256, 64-byte message | 0.0019 |
-| T_kdf | HKDF-SHA256, 32-byte output | 0.0041 |
+| T_h | SHA-256, 64-byte input | 0.0011 |
+| T_hmac | HMAC-SHA256, 64-byte message | 0.0017 |
+| T_kdf | HKDF-SHA256, 32-byte output | 0.0038 |
 | T_enc | AES-256-GCM encrypt, 64-byte plaintext | 0.0017 |
-| T_dec | AES-256-GCM decrypt + verify, 64-byte plaintext | 0.0015 |
-| T_ecm | P-256 ECDH (key generation or shared secret) | 0.0912 |
-| T_sig | ECDSA P-256 sign | 0.0233 |
-| T_ver | ECDSA P-256 verify | 0.0737 |
-| T_xor | XOR of two 32-byte strings | 0.0022 |
-| T_rand | 128-bit random nonce (secrets) | 0.0002 |
+| T_dec | AES-256-GCM decrypt + verify, 64-byte plaintext | 0.0016 |
+| T_ecm | P-256 ECDH (key generation or shared secret) | 0.0923 |
+| T_sig | ECDSA P-256 sign | 0.0218 |
+| T_ver | ECDSA P-256 verify | 0.0774 |
+| T_xor | XOR of two 32-byte strings | 0.0019 |
+| T_rand | 128-bit random nonce (secrets) | 0.0020 |
+| T_fe | Fuzzy extractor Rep(): code-offset, RS(48,16) via reedsolo, 8 byte errors | 0.8338 |
 
 ## 2. Computation cost per entity (one successful login, Steps 1–7)
 
 | Entity | Operations | Symbolic cost | Time (ms) |
 |---|---|---|---:|
-| SD | RPW, h(ID‖RPW), V check, SK (4 h); A = B ⊕ … (1 xor); E = e·G, Z = e·Q_AS (2 ecm); k1, k_u (2 kdf); C1 (1 enc); C_U, door confirmation (2 dec); verify Auth_DL, compute Auth_U (2 hmac) | 4T_h + 1T_xor + 2T_hmac + 2T_kdf + 1T_enc + 2T_dec + 2T_ecm | 0.2071 |
-| DL | Tag2, Auth_DL, verify Auth_U (3 hmac); C_DL (1 dec); Enc_SK confirmation (1 enc) | 3T_hmac + 1T_enc + 1T_dec | 0.0089 |
-| AS | h(C1) replay cache, K_DL, A, SK (4 h); verify Tag2 (1 hmac); Z = d_AS·E (1 ecm); k1, k_u (2 kdf); C1 (1 dec); C_DL, C_U (2 enc) | 4T_h + 1T_hmac + 2T_kdf + 2T_enc + 1T_dec + 1T_ecm | 0.1119 |
-| AS + audit log | above + transcript hash + ECDSA signature | 5T_h + 1T_hmac + 2T_kdf + 2T_enc + 1T_dec + 1T_ecm + 1T_sig | 0.1367 |
-| **Total (protocol)** | | 8T_h + 1T_xor + 6T_hmac + 4T_kdf + 4T_enc + 4T_dec + 3T_ecm | **0.3280** |
+| SD | RPW, h(ID‖RPW), V check, SK (4 h); A = B ⊕ … (1 xor); E = e·G, Z = e·Q_AS (2 ecm); k1, k_u (2 kdf); C1 (1 enc); C_U, door confirmation (2 dec); verify Auth_DL, compute Auth_U (2 hmac) | 4T_h + 1T_xor + 2T_hmac + 2T_kdf + 1T_enc + 2T_dec + 2T_ecm | 0.2069 |
+| DL | Tag2, Auth_DL, verify Auth_U (3 hmac); C_DL (1 dec); Enc_SK confirmation (1 enc) | 3T_hmac + 1T_enc + 1T_dec | 0.0083 |
+| AS | h(C1) replay cache, K_DL, A, SK (4 h); verify Tag2 (1 hmac); Z = d_AS·E (1 ecm); k1, k_u (2 kdf); C1 (1 dec); C_DL, C_U (2 enc) | 4T_h + 1T_hmac + 2T_kdf + 2T_enc + 1T_dec + 1T_ecm | 0.1111 |
+| AS + audit log | above + transcript hash + ECDSA signature | 5T_h + 1T_hmac + 2T_kdf + 2T_enc + 1T_dec + 1T_ecm + 1T_sig | 0.1340 |
+| **Total (protocol)** | | 8T_h + 1T_xor + 6T_hmac + 4T_kdf + 4T_enc + 4T_dec + 3T_ecm | **0.3263** |
 
-Cost of design change D1 (ephemeral ECDH): 2T_ecm on SD + 1T_ecm on AS = 0.2736 ms, i.e. 83% of the total — the price of resisting offline guessing with a stolen device.
+Cost of design change D1 (ephemeral ECDH): 2T_ecm on SD + 1T_ecm on AS = 0.2769 ms, i.e. 85% of the total — the price of resisting offline guessing with a stolen device.
 Fixed costs outside the login (password change, registration) and random-number generation are not included.
 
 ## 3. Communication cost (bits)
@@ -53,13 +54,69 @@ the figures above are the protocol-level sizes conventionally used for compariso
 
 ## 4. Comparison with existing schemes
 
-| Scheme | User / SD cost | Server cost | Total comm. (bits) | Messages | Resists stolen-device offline guessing |
-|---|---|---|---:|---:|---|
-| **This protocol** | 4T_h + 1T_xor + 2T_hmac + 2T_kdf + 1T_enc + 2T_dec + 2T_ecm | 4T_h + 1T_hmac + 2T_kdf + 2T_enc + 1T_dec + 1T_ecm | 4944 | 5 | Yes (D1) |
-| TODO: fill from cited paper [1] | TODO | TODO | TODO | TODO | TODO |
-| TODO: fill from cited paper [2] | TODO | TODO | TODO | TODO | TODO |
-| TODO: fill from cited paper [3] | TODO | TODO | TODO | TODO | TODO |
-| TODO: fill from cited paper [4] | TODO | TODO | TODO | TODO | TODO |
+Four peer-reviewed schemes (2020–2025) were read in full; how they were chosen, every extracted value,
+its location in the paper and our recounts are in [related_schemes.json](related_schemes.json).
+All times below use **this machine's** timings from Section 1, never the papers' own timings.
 
-To compare fairly, convert each scheme's operation counts to ms with the timings in Section 1
-(do not mix in timings measured on other machines).
+### 4.1 Computation cost (login + authentication, one session)
+
+| Scheme | User device (symbolic) | User (ms) | Server (symbolic) | Server (ms) | Door / sensor (symbolic, ms) | Total (ms) |
+|---|---|---:|---|---:|---|---:|
+| [1] Banerjee et al. 2020 | 10T_h + 1T_fe | 0.8450 | 10T_h | 0.0112 | 4T_h (0.0045) | 0.8607 |
+| [2] Oh et al. 2021 | 18T_h | 0.0202 | 16T_h | 0.0179 | 8T_h (0.0090) | 0.0471 |
+| [3] Zhao et al. 2022 | 9T_h + 3T_ecm + 1T_fe | 1.1208 | 8T_h + 2T_ecm | 0.1936 | 5T_h + 3T_ecm (0.2826) | 1.5969 |
+| [4] Sudhakar et al. 2025 | 9T_h + 3T_ecm | 0.2870 | 9T_h + 1T_ecm | 0.1024 | 5T_h + 2T_ecm (0.1902) | 0.5797 |
+| **This protocol** | 4T_h + 1T_xor + 2T_hmac + 2T_kdf + 1T_enc + 2T_dec + 2T_ecm | 0.2069 | 4T_h + 1T_hmac + 2T_kdf + 2T_enc + 1T_dec + 1T_ecm | 0.1111 | 3T_hmac + 1T_enc + 1T_dec (0.0083) | 0.3263 |
+
+### 4.2 Communication cost (as reported by each paper, under its own field sizes)
+
+| Scheme | Messages | Total bits | Hash / ID / EC-point size assumed (bits) |
+|---|---:|---:|---|
+| [1] Banerjee et al. 2020 | 4 | 1888 | 160 / 128 / 320 |
+| [2] Oh et al. 2021 | 5 | 2080 | 160 / 128 / 320 |
+| [3] Zhao et al. 2022 | 4 | 2848 | 160 / 160 / 320 |
+| [4] Sudhakar et al. 2025 | 4 | 2496 | 128 / 128 / 160 stated (320 used in the sums) |
+| **This protocol** | 5 | 4944 | 256 / 128 / 264 (compressed) |
+
+### 4.3 Security features
+
+| Scheme | Offline guessing with stolen device | Mutual auth. | User anonymity | Untraceability | Revocation | Desync resistance | Forward secrecy | Formal verification |
+|---|---|---|---|---|---|---|---|---|
+| [1] Banerjee et al. 2020 | ✔ | ✔ | ✔ | ✔ | ✔ | ✘ | n/r | ROR model proof + AVISPA (Section 5.1, 5.2) |
+| [2] Oh et al. 2021 | ✔ | ✔ | ✔ | ✔ | n/r | ✔ | ✔ | BAN logic + ROR model + AVISPA (Section 9) |
+| [3] Zhao et al. 2022 | ✔ | ✔ | ✔ | ✔ | n/r | ✔ | ✔ | ROR-style security proof under ECDHP + Scyther (Sections 4.1, 4.2) |
+| [4] Sudhakar et al. 2025 | ✔ | ✔ | ✔ | ✔ | ✔ | n/r | ✔ | ROR model proof only (Section 'Formal security proof of the proposed protocol'); the ProVerif/BAN mentions in the paper refer to other schemes |
+| **This protocol** | ✔ | ✔ | ✔ | ✔ | ✔ | ✔ | ✘ | ProVerif (13 queries + weaksecret) + executable attack suite |
+
+✔ = claimed by the paper (for our protocol: verified by ProVerif and/or the attack scripts); ✘ = not provided; n/r = not reported or not analysed by the paper. Claims of the other schemes are their authors' and were not re-verified here.
+
+### Notes
+
+1. **Primitive mappings.** [1] Th (hash, SHA-1 assumed in the paper) → T_h (SHA-256), Tb (fuzzy extractor Gen/Rep) → T_fe; [2] Th → T_h; [3] Th (SHA-1 in the paper's sizes) → T_h (SHA-256), Tecm (ECC point multiplication) → T_ecm (P-256), Tfe (fuzzy extractor) → T_fe; [4] T_H → T_h (SHA-256), T_M (EC scalar multiplication) → T_ecm (P-256). Our T_h is SHA-256 and T_ecm is a P-256 scalar multiplication (OpenSSL via `cryptography`).
+2. **T_fe** is a code-offset fuzzy extractor `Rep()` built on the `reedsolo` Reed–Solomon decoder (pure Python), so it is slow relative to the C-backed primitives; the papers themselves assume T_fe ≈ T_ecm. It only affects [1] and [3].
+3. **XOR** is not counted for the published schemes (none of the papers count it); our row includes 1T_xor (0.0019 ms).
+4. **Our row**: user = SD, server = AS, door = DL; the AS's audit-log signature (1T_h + 1T_sig) is excluded because no other scheme keeps a signed log.
+5. **[1] counts** — paper: user 10Th+1Tb, server 10Th, device 4Th, total 24Th+1Tb (Section 6.2, Table 2 ('Computation costs comparison')); our recount from the protocol steps matches the paper. Section 4.3 Steps 1-5. U: Rep(Bio,tau) [Tb]; h(ID||PW||sigma), A2*, K_UG, V1 [4h]; Step 5: K_UG', V4*, SK = h(h(ID||Ru||C1)||Rd||SID) [2h], A2', A3' [2h] (A1' reuses h(ID||PW||sigma)) = 10h. GWN: K_UG = h(ID||h(Rg||K)) [2h], V1*, K_GS = h(SID||h(K)) [1h with h(K) precomputed], C1, C2, V2, V3*, K_UG', V4 = 10h (11h if h(K) is recomputed). SD: V2*, SK, h(SK), V3 = 4h. Step 1 says 'generates two random numbers R1 and w' but then uses Ru and never w (notation slip).
+6. **[2] counts** — paper: user n/r, server n/r, device n/r, total 42Th (Section 8.1, Table 3 ('Ours | 42Th | 0.0168 ms'); no per-entity split); our recount from the protocol steps matches the paper. Section 6.3 Steps 1-6, counting every hash written (no reuse of intermediate hashes), which reproduces the paper's total of 42Th. MU: h(ID||PW), HPW, A2*, h(r||HPW), h(RID||HPW), h(PID||RID||K), h(ID||RN), h(K||RN), V_MU [9h]; Step 5: PID_new, h(RID||RN), V_GSD*, h(ID||RN), SK, RID_new, h(r||HPW), h(RID_new||HPW), M6 [9h] = 18h. HGW: h(PID||RID||K), V_MU*, M2, h(PID_SD||K_GSD||r_SD), h(K||RN), h(ID_G||RN_G), h(K_GSD||r_SD), V_MUG [8h]; Step 4: h(PID_SD||K_GSD||r_SD), V_SD*, SK, PID_new, RID_new, h(RID||RN), V_GSD [7h]; Step 6: M6* [1h] = 16h. SD: h(ID_SD||K_SD), h(r_SD||K_SD), h(PID_SD||K_GSD||r_SD), V_MUG*, h(K_GSD||r_SD), h(ID_SD||RN_SD), SK, V_SD = 8h. With reuse of repeated hashes the total would be 39h. The HGW's SK formula in Step 4 has a missing h( (notation slip).
+7. **[3] counts** — paper: user 9Th+1Tfe+3Tecm, server 8Th+2Tecm, device 5Th+3Tecm, total n/r symbolically (the Total column gives 0.16094 s; the per-entity entries sum to 22Th+1Tfe+8Tecm) (Section 5.3, Table 5 ('Ours | Case-1')); our recount from the protocol steps matches the paper. Sections 3.3 and 3.4.1. Ui: Rep [Tfe]; HID, HPW, B' [3h]; D1 = aP, D2 = aKh [2 ecm]; h(D2) for M1 and again for M2, M3 [3h]; Step 5: M8', SK' = h(D1||D3||aD3) [1h + 1 ecm], M7' [1h] = 9h + 3ecm (8h if h(D2) is reused). HGWN: D2' = kh*D1 [ecm], h(D2') x2, Ah', M3', h(Ags||T2), M5 [6h]; Step 4: D4' = kh*D3 [ecm], M6', M8 [2h] = 8h + 2ecm. SNj: h(Ags||T2), M5' [2h]; D3 = bP, D4 = bKh, bD1 [3 ecm]; SK, M6, M7 [3h] = 5h + 3ecm.
+8. **[4] counts** — paper: user n/r, server n/r, device n/r, total 23T_H+4T_M (Section 'Computational cost comparison', Table 8 ('Proposed scheme | 23T_H+4T_M | ≈ 8.9569'); no per-entity split); our recount from the protocol steps **differs from the paper**. Sections 'Login' and 'Authentication and key agreement'. Ui: FV* = h(h(ID) xor h(PW||b)) [3h], x = h(k_i||x_i||n1), C1, h1 [3h], X = xP, K1 = xQ [2 ecm]; AK5: k_ij, h4 [2h], SK = h(xY||k_ij||s_j) [1h + 1 ecm] = 9h + 3ecm. GWN: k_j, s_j, h2*, ID_i = C1 xor h(K2||...), k_i, h1*, k_ij, h(SID||k_j||s_j), h3 [9h], K2 = kX [1 ecm] = 9h + 1ecm. Sj: h2, h(SID||k_j||s_j), h3*, SK, h4 [5h], Y = yP, yX [2 ecm] = 5h + 2ecm. Hashes: 23, matching the paper. EC scalar multiplications: 6 (xP, xQ, xY, kX, yP, yX) versus 4T_M in Table 8. We use our count of 6.
+9. **[1] communication** — Section 6.1 and Table 1 ('(68 + 40 +56 +72) = 236' bytes); sizes: 'an ECC point is 320 bits, hash digest (assuming SHA-1 hashing algorithm is applied) is 160 bits, nonces as well as identities are 128 bits long' (Section 6.1). M1 is written as '(128+(128+126)+160)=544 bits'; the terms as printed sum to 542. The reported total 1888 bits is used.
+10. **[2] communication** — Section 8.2 and Table 4 ('(640 + 640 + 320 + 320 + 160) = 2080 bits'); sizes: 'an ECC point, symmetric key encryption/decryption, hash function, random number, identity, and timestamp are 320, 256, 160, 160, 128, and 32 bits' (Section 8.2). The text lists {M5,VGSD} as '20' bits while Table 4 uses 320; the table's total (2080) is consistent with 320 and is used.
+11. **[3] communication** — Section 5.2, Table 3 ('Ours | Case-1 | 4 | 2848'); sizes: 'the identity, random number, hash digest, ECC point, and timestamp were 160 bits, 160 bits, 160 bits, 320 bits, and 32 bits' (Section 5.2).
+12. **[4] communication** — Section 'Communication cost comparison', Table 6 ('Proposed scheme | 704 | 1088 | 256 | 448 | ... | 4 | 2496'); sizes: 'n_0 is 32-bits, and size of ID_i, PW_i, h(·), output of symmetric encryption and random numbers be 128-bits, Elliptic curve points are 160 bits'. The stated EC point size (160 bits) conflicts with the per-message sums, which count X as 320 bits; the reported total 2496 bits is used.
+13. **[1] offline guessing with stolen device** — Three-factor: the card verifier A2 = h(DIDu||IDu||sigma_u||PWu) also needs the biometric key sigma_u.
+14. **[1] desync resistance** — The paper suggests keeping old DIDu and Rg at the GWN as a fix, but it is not part of the specified protocol.
+15. **[2] offline guessing with stolen device** — The argument is that 'A needs to guess both IDMU and PWMU'. The device stores A2 = h(ID||PW||r||HPW), an exact verifier of the (ID, PW) pair, so resistance depends on the identity being unguessable (our observation, not a published attack).
+16. **[3] offline guessing with stolen device** — Three-factor: the card verifier Bi needs the biometric key sigma_i.
+17. **This protocol, forward secrecy** — partial only: leaking a user's card + password (A) does not expose past session keys (Z needs d_AS), but leaking the AS secrets (x, d_AS) or a door's K_DL does (SK is in C_DL).
+
+### Interpretation
+
+On this machine one login costs 0.326 ms across all three entities for our protocol, against 0.047 ms for the hash-only scheme [2] Oh et al. 2021, 0.861 ms for [1] Banerjee et al. 2020 (mostly its fuzzy extractor), and 1.597 / 0.580 ms for the ECC schemes [3] Zhao et al. 2022 and [4] Sudhakar et al. 2025. Our 3 EC scalar multiplications, all added by design change D1, make us about 7× more expensive than [2] Oh et al. 2021, which has no public-key step at all; that step is what stops an attacker holding a stolen device from confirming password guesses against a recorded login, whereas [2] Oh et al. 2021 relies on the user's identity staying unguessable. Among the ECC-based designs ours needs the fewest EC multiplications (3 versus 8 and 6), and our door lock does only symmetric work (0.0083 ms) where their sensor nodes perform EC multiplications (0.2826 and 0.1902 ms). Our communication cost (4944 bits) is the highest of the five, mainly because we size every hash/MAC at 256 bits (SHA-256) where the papers assume 128–160 bits, the door forwards the whole M1 inside M2, and each AES-GCM ciphertext carries a 96-bit nonce and a 128-bit tag. The security columns for the other schemes are their authors' claims; ours are checked by ProVerif and the attack scripts, and we do not offer forward secrecy against compromise of the AS secrets.
+
+### References
+
+1. S. Banerjee, V. Odelu, A. K. Das, S. Chattopadhyay, Y. Park, “An Efficient, Anonymous and Robust Authentication Scheme for Smart Home Environments,” *Sensors, vol. 20, no. 4, art. 1215*, 2020. doi:[10.3390/s20041215](https://doi.org/10.3390/s20041215)
+2. J. Oh, S. Yu, J. Lee, S. Son, M. Kim, Y. Park, “A Secure and Lightweight Authentication Protocol for IoT-Based Smart Homes,” *Sensors, vol. 21, no. 4, art. 1488*, 2021. doi:[10.3390/s21041488](https://doi.org/10.3390/s21041488)
+3. X. Zhao, D. Li, H. Li, “Practical Three-Factor Authentication Protocol Based on Elliptic Curve Cryptography for Industrial Internet of Things,” *Sensors, vol. 22, no. 19, art. 7510*, 2022. doi:[10.3390/s22197510](https://doi.org/10.3390/s22197510)
+4. T. Sudhakar, R. Praveen, V. Natarajan, “An efficient ECC and fuzzy verifier based user authentication protocol for IoT enabled WSNs,” *Scientific Reports, vol. 15, art. 9974*, 2025. doi:[10.1038/s41598-025-94550-9](https://doi.org/10.1038/s41598-025-94550-9)

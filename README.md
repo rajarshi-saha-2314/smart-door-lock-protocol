@@ -240,7 +240,9 @@ models. Its ≈ 1/n0 false-accept behaviour is shown empirically by `stolen_card
 
 `make bench` times every primitive (1000 runs, `benchmarks/primitive_timing.csv`). It then writes
 [benchmarks/results.md](benchmarks/results.md) with the per-entity computation cost (symbolic and ms), the per-message
-communication cost in bits, and a comparison table whose rows for other schemes are left as `TODO`.
+communication cost in bits, and a comparison with four published schemes. The comparison is generated from
+[benchmarks/related_schemes.json](benchmarks/related_schemes.json), which records every value extracted from the
+papers, where it was found, and our recount of each scheme's operations.
 
 | Entity | Computation (one successful login) |
 |---|---|
@@ -250,6 +252,21 @@ communication cost in bits, and a comparison table whose rows for other schemes 
 
 Communication cost: M1 1032 + M2 1448 + M3 1208 + M4 968 + M5 288 = **4944 bits**, of which 2288 bits cross the SD↔DL link.
 D1 adds 3 EC scalar multiplications and 264 bits (`E`).
+
+**Comparison with published schemes** (all priced with this machine's timings; details in `benchmarks/results.md` §4):
+
+| Scheme | Type | Total login cost | Messages / bits (as reported) |
+|---|---|---|---|
+| Banerjee et al., *Sensors* 2020 | hash + fuzzy extractor, 3-factor | 24T_h + 1T_fe | 4 / 1888 |
+| Oh et al., *Sensors* 2021 | hash only, 2-factor | 42T_h | 5 / 2080 |
+| Zhao et al., *Sensors* 2022 | ECC + fuzzy extractor, 3-factor | 22T_h + 8T_ecm + 1T_fe | 4 / 2848 |
+| Sudhakar et al., *Sci. Rep.* 2025 | ECC + fuzzy verifier, 2-factor | 23T_h + 6T_ecm (paper: 4T_M) | 4 / 2496 |
+| **This protocol** | ECDH + symmetric, 2-factor | 3T_ecm + symmetric/hash work | 5 / 4944 |
+
+Our protocol is roughly 6–7× costlier per login than the hash-only scheme (the exact ratio varies with timing noise), because of the three EC multiplications that D1 adds
+to stop offline guessing with a stolen device. It is the cheapest of the ECC-based designs, and its door lock does only
+symmetric work. It sends the most bits, mainly because of 256-bit hashes/MACs (the papers assume 128–160 bits) and
+because the door relays M1 inside M2.
 
 ---
 
