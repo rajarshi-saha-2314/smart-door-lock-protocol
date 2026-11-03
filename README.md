@@ -10,9 +10,41 @@ This repository contains:
 3. A **ProVerif model** of the protocol (`formal/`).
 4. A **performance analysis** (`benchmarks/results.md`).
 
+## Contents
+
+1. [Design changes (approved during the project)](#1-design-changes-approved-during-the-project)
+2. [Quick start](#2-quick-start)
+3. [Entities and roles](#3-entities-and-roles) (with the architecture diagram)
+4. [Authentication parameters](#4-authentication-parameters)
+5. [Assumptions and threat model](#5-assumptions-and-threat-model)
+6. [The protocol](#6-the-protocol) (with the login sequence diagram)
+7. [Security services](#7-security-services)
+8. [Security testing (attack demonstrations)](#8-security-testing-attack-demonstrations)
+9. [Formal verification (ProVerif)](#9-formal-verification-proverif)
+10. [Performance](#10-performance)
+11. [Known limitations](#11-known-limitations)
+12. [Project structure](#12-project-structure)
+
 ---
 
-## Quick start
+## 1. Design changes (approved during the project)
+
+The project brief specified the protocol in full. While implementing it, three problems were found. Each was reported
+with a proposed fix and implemented only after approval; everything else follows the brief. The notation is explained
+in [§6](#6-the-protocol).
+
+| # | Change | Why |
+|---|---|---|
+| **D1** | M1 carries an ephemeral ECDH share `E = e·G`. `k1 = KDF(A ‖ Z, "M1" ‖ TID ‖ T1 ‖ E)` with `Z = e·Q_AS = d_AS·E`, and `E` is added to C1's associated data. The card also stores `Q_AS` | **Stolen device + one recorded login → offline password recovery.** In the original design, a guessed password gives a candidate `A`, and trying to decrypt a recorded `C1` confirms it exactly (the GCM tag only verifies for the right `A`). That defeats the fuzzy verifier. With D1, checking a guess needs `Z`, which requires `d_AS` or `e`. `attacks/stolen_card.py` shows both cases: original design → password found, D1 → no candidate confirmed |
+| **D2** | `A = h(ID_U ‖ x ‖ v)` with a per-user card-issue counter `v`, stored in the DB and incremented on re-issue | With a fixed `A`, an old card plus the password still worked after re-issue: every `M1` shows a valid `TID` in the clear, which the AS accepts as `TID_old`. Now the old card's `A` is dead (`tests/test_login_failures.py::test_reissued_card_kills_old_card_even_with_password`) |
+| **D3** | `Auth_U = HMAC(SK, "U-CONFIRM" ‖ TID ‖ T5)`, using `TID` instead of `TID_new` | As written, the spec cannot be implemented: the door must verify `Auth_U`, but `TID_new` exists only inside `C_U`, which the door cannot read. Using `TID` keeps the next pseudonym hidden from the door |
+
+ProVerif confirms the D1 fix: offline password guessing with a stolen device is impossible for the protocol as built,
+and possible for the original specification ([§9](#9-formal-verification-proverif)).
+
+---
+
+## 2. Quick start
 
 Requires Python 3.11+.
 
@@ -62,7 +94,7 @@ hour. Message timestamps always use real time.
 
 ---
 
-## 1. Entities and roles
+## 3. Entities and roles
 
 | Symbol | Entity | Role | Code |
 |---|---|---|---|
@@ -72,7 +104,53 @@ hour. Message timestamps always use real time.
 | AS | Authentication Server | Department server. Registration authority, verifies users and doors, enforces policy, keeps the signed log | `entities/auth_server.py` |
 | — | Admin office | Offline secure channel for registration, revocation and re-issue (a local CLI, never the network) | `admin/` |
 
-## 2. Authentication parameters
+### Architecture
+
+```mermaid
+%% System architecture and trust boundaries
+flowchart LR
+    U(["👤 User U<br/>ID_U, PW_U"])
+
+    subgraph SDbox["Smart Device SD (phone / smartcard)"]
+        SD["Card file<br/>B, V, TID, r, n0, pk_AS, Q_AS"]
+    end
+
+    subgraph Public["Public channel (TCP) — Dolev–Yao attacker: eavesdrop / replay / modify / drop / inject"]
+        ATK{{"🕵 Attacker<br/>proxy :9200"}}
+    end
+
+    subgraph Doors["Classroom door locks"]
+        DL1["DL CSE-101 :9100<br/>ID_DL, K_DL = h(ID_DL ‖ x)"]
+        DL2["DL CSE-102 :9101<br/>own K_DL"]
+    end
+
+    subgraph ASbox["Authentication Server AS :9000 (trusted)"]
+        AS["Verifier + policy engine<br/>x, sk_AS, d_AS"]
+        DB[("SQLite users / doors<br/>ID_U, role, TID_cur, TID_old,<br/>v, revoked, failed_attempts")]
+        POL["policy.json<br/>roles + timetable"]
+        LOG[("access_log.jsonl<br/>ECDSA-signed hash chain")]
+    end
+
+    OFFICE["🏢 Department office<br/>offline secure channel<br/>(registration, revocation)"]
+
+    U -- "ID_U*, PW_U*" --> SD
+    SD <-- "M1, M4, M5, Enc_SK" --> ATK
+    ATK <--> DL1
+    ATK <--> DL2
+    DL1 <-- "M2, M3" --> AS
+    DL2 <-- "M2, M3" --> AS
+    AS --- DB
+    AS --- POL
+    AS --> LOG
+    OFFICE -. "card {B, V, TID, n0, pk_AS, Q_AS}" .-> SD
+    OFFICE -. "{ID_DL, K_DL, pk_AS}" .-> DL1
+    OFFICE -. "{ID_DL, K_DL, pk_AS}" .-> DL2
+    OFFICE -. "DB rows" .-> DB
+```
+
+The source is [diagrams/architecture.mmd](diagrams/architecture.mmd).
+
+## 4. Authentication parameters
 
 | Who | Factors / long-term values | Where stored |
 |---|---|---|
@@ -81,7 +159,7 @@ hour. Message timestamps always use real time.
 | AS | master secret `x`, ECDSA key `sk_AS`, ECDH key `d_AS` | `keys/` |
 | AS database | `ID_U, role, class, v, TID_cur, TID_old, revoked, failed_attempts`. **No** `PW_U`, `RPW`, `A` or `K_DL` | `db/door_lock.db` |
 
-## 3. Assumptions and threat model
+## 5. Assumptions and threat model
 
 - Registration of users and doors is **offline** over a secure channel. It is simulated by the `admin/` CLIs, which write directly to the DB and the card and config files.
 - Login messages travel over an **insecure public channel** (TCP on localhost) controlled by a **Dolev–Yao** attacker, who can eavesdrop, intercept, replay, modify, drop, delay and inject.
@@ -90,15 +168,12 @@ hour. Message timestamps always use real time.
 
 ---
 
-## 4. The protocol
+## 6. The protocol
 
 Notation: `h` = SHA-256, `HMAC` = HMAC-SHA256, `KDF` = HKDF-SHA256, `Enc/Dec` = AES-256-GCM with a random
 12-byte nonce and associated data. `‖` is length-prefixed concatenation (4-byte big-endian length per field), which
 makes `cat("ab","c") ≠ cat("a","bc")`. All formulas live in one module, [common/protocol.py](common/protocol.py), and
 code variable names follow the notation (`N1`, `TID`, `C_U`, `Auth_DL`, …).
-
-Sequence diagrams for every phase are in [diagrams/](diagrams/) (Mermaid; render with mermaid.live or the VS Code
-Mermaid extension).
 
 | Phase | Summary |
 |---|---|
@@ -109,16 +184,47 @@ Mermaid extension).
 | 4 Password change | Only after a successful online login in the same session. New `r', B', V'`; the AS is not involved |
 | 5 Revocation / re-issue | `revoked = 1`. Re-issue: new `TID`, new `r`, `v ← v+1` |
 
+### Login and authentication (Phase 3)
+
+```mermaid
+%% Phase 3 — Login and authentication over the public channel (with D1, D2, D3)
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant SD as Smart Device
+    participant DL as Door Lock
+    participant AS as Authentication Server
+
+    U->>SD: ID_U*, PW_U*
+    Note over SD: Step 1 — local login<br/>RPW* = h(PW_U* ‖ r)<br/>check int(h(h(ID_U* ‖ RPW*))) mod n0 = V<br/>A = B ⊕ h(ID_U* ‖ RPW*)
+
+    Note over SD: Step 2 — N1, T1, ephemeral e<br/>E = e·G, Z = e·Q_AS (D1)<br/>k1 = KDF(A ‖ Z, "M1" ‖ TID ‖ T1 ‖ E)<br/>C1 = Enc_k1(N1 ‖ ID_U, aad = TID ‖ T1 ‖ ID_DL ‖ E)
+    SD->>DL: M1 = {TID, T1, ID_DL, E, C1}
+
+    Note over DL: Step 3 — check |now − T1| ≤ ΔT<br/>N2, T2<br/>Tag2 = HMAC(K_DL, M1 ‖ N2 ‖ T2 ‖ ID_DL)
+    DL->>AS: M2 = {M1, N2, T2, Tag2}
+
+    Note over AS: Step 4 — T1, T2 fresh, (TID, T1, h(C1)) not replayed<br/>K_DL = h(ID_DL ‖ x), verify Tag2 → door authenticated<br/>TID ∈ {TID_cur, TID_old}, not revoked, failed_attempts below 5<br/>A = h(ID_U ‖ x ‖ v), Z = d_AS·E, decrypt C1 → user authenticated<br/>policy(ID_U, role, ID_DL, time) → ALLOW / DENY
+    Note over AS: N3, TID_new, T3<br/>SK = h(N1 ‖ N2 ‖ N3 ‖ ID_DL ‖ TID ‖ T3)<br/>C_DL = Enc_K_DL(decision ‖ SK ‖ role ‖ T3, aad = ID_DL ‖ TID ‖ N2)<br/>k_u = KDF(A, "M3" ‖ N1 ‖ T3)<br/>C_U = Enc_k_u(decision ‖ N2 ‖ N3 ‖ TID_new ‖ T3, aad = TID ‖ ID_DL)<br/>TID_old ← TID, TID_cur ← TID_new, signed audit-log entry
+    AS->>DL: M3 = {T3, C_DL, C_U}
+
+    Note over DL: Step 5 — decrypt C_DL → AS authenticated, gets SK<br/>T4, Auth_DL = HMAC(SK, "DL-CONFIRM" ‖ ID_DL ‖ TID ‖ T4)
+    DL->>SD: M4 = {C_U, T3, T4, Auth_DL}   (DENY → only {C_U, T3})
+
+    Note over SD: Step 6 — k_u, decrypt C_U → AS authenticated<br/>SK = h(N1 ‖ N2 ‖ N3 ‖ ID_DL ‖ TID ‖ T3)<br/>verify Auth_DL → door authenticated<br/>card TID ← TID_new<br/>Auth_U = HMAC(SK, "U-CONFIRM" ‖ TID ‖ T5) (D3)
+    SD->>DL: M5 = {T5, Auth_U}
+
+    Note over DL: Step 7 — verify T5, Auth_U → user holds SK
+    DL->>DL: 🔓 UNLOCKED ID_DL for 5 s
+    DL->>SD: Enc_SK("UNLOCKED ID_DL for 5 s")
+    SD->>DL: Enc_SK("LOCK") (optional)
+```
+
+Sequence diagrams for the other phases (setup, door and user registration, password change, revocation, desync
+recovery) are in [diagrams/](diagrams/) as Mermaid sources.
+
 Desynchronization: if M4 is lost, the SD keeps the old `TID`. The AS still accepts it as `TID_old` and issues a
 fresh `TID_new` ([diagram](diagrams/desync_recovery.mmd), `attacks/desync_attack.py`, `tests/test_desync.py`).
-
-### Design changes (approved during the project)
-
-| # | Change | Why |
-|---|---|---|
-| **D1** | M1 carries an ephemeral ECDH share `E = e·G`. `k1 = KDF(A ‖ Z, "M1" ‖ TID ‖ T1 ‖ E)` with `Z = e·Q_AS = d_AS·E`, and `E` is added to C1's associated data. The card also stores `Q_AS` | **Stolen device + one recorded login → offline password recovery.** In the original design, a guessed password gives a candidate `A`, and trying to decrypt a recorded `C1` confirms it exactly (the GCM tag only verifies for the right `A`). That defeats the fuzzy verifier. With D1, checking a guess needs `Z`, which requires `d_AS` or `e`. `attacks/stolen_card.py` shows both cases: original design → password found, D1 → no candidate confirmed |
-| **D2** | `A = h(ID_U ‖ x ‖ v)` with a per-user card-issue counter `v`, stored in the DB and incremented on re-issue | With a fixed `A`, an old card plus the password still worked after re-issue: every `M1` shows a valid `TID` in the clear, which the AS accepts as `TID_old`. Now the old card's `A` is dead (`tests/test_login_failures.py::test_reissued_card_kills_old_card_even_with_password`) |
-| **D3** | `Auth_U = HMAC(SK, "U-CONFIRM" ‖ TID ‖ T5)`, using `TID` instead of `TID_new` | As written, the spec cannot be implemented: the door must verify `Auth_U`, but `TID_new` exists only inside `C_U`, which the door cannot read. Using `TID` keeps the next pseudonym hidden from the door |
 
 ### Implementation notes (no design change)
 
@@ -130,7 +236,7 @@ fresh `TID_new` ([diagram](diagrams/desync_recovery.mmd), `attacks/desync_attack
 
 ---
 
-## 5. Security services
+## 7. Security services
 
 | Service | Mechanism |
 |---|---|
@@ -163,7 +269,7 @@ Each line of `logs/access_log.jsonl` has the fields `seq, timestamp, ID_U, role,
 
 ---
 
-## 6. Security testing (attack demonstrations)
+## 8. Security testing (attack demonstrations)
 
 All scripts expect the AS and doors to be running (`make attacks` starts everything). Each prints
 `ATTACK: <name> → RESULT: BLOCKED (<reason>)`, and the reason comes from the rejecting entity's actual response.
@@ -181,15 +287,54 @@ The victim's smart device always runs as a **separate process**, and the attacke
 | `door_compromise.py` | Leak `K_DL(CSE-101)`, pose as door CSE-102 to the AS, try to derive other door keys | `Tag2` fails for CSE-102. Keys are independent hashes of `x` |
 | `traceability.py` | Record two logins by the same user and compare every field on the wire | Fresh `TID`, `E`, `C1` each session. `ID_U` never appears |
 
-Last full run of `make demo` from a clean copy: **24 / 24 attack checks blocked** (23 with `--fast`), including the
-audit-log tamper check, and `verify_log` reports the real log intact.
+### Attack summary (real output)
+
+The table below is copied verbatim from `python run_demo.py --fast`, run on 3 November 2026. The terminal was set to
+200 columns so the rows fit (only row 19 wraps). Row 23 is the audit-log check: `verify_log` reports the real log intact and flags
+the line edited in a tampered copy.
+
+```text
+┌────┬────────────────────────────────────────────────┬─────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ #  │ Attack                                         │ Result  │ Reason                                                                                                                              │
+├────┼────────────────────────────────────────────────┼─────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ 1  │ replay M1+M5 within ΔT                         │ BLOCKED │ AS rejected: replay detected: (TID, T1, h(C1)) already seen                                                                         │
+│ 2  │ replay M5 alone                                │ BLOCKED │ expected M1 to start a session, got M5                                                                                              │
+│ 3  │ replay M1 with refreshed T1                    │ BLOCKED │ AS rejected: C1 failed AES-GCM verification (wrong A / tampered M1) — failed_attempts=1/5                                           │
+│ 4  │ MITM tamper M1.C1                              │ BLOCKED │ REJECTED: AS rejected: C1 failed AES-GCM verification (wrong A / tampered M1) — failed_attempts=1/5                                 │
+│ 5  │ MITM tamper M1.T1                              │ BLOCKED │ REJECTED: AS rejected: C1 failed AES-GCM verification (wrong A / tampered M1) — failed_attempts=2/5                                 │
+│ 6  │ MITM tamper M1.E                               │ BLOCKED │ REJECTED: AS rejected: C1 failed AES-GCM verification (wrong A / tampered M1) — failed_attempts=3/5                                 │
+│ 7  │ MITM tamper M4.C_U                             │ BLOCKED │ REJECTED: C_U failed AES-GCM verification → AS NOT authenticated                                                                    │
+│ 8  │ MITM tamper M4.Auth_DL                         │ BLOCKED │ REJECTED: Auth_DL invalid → door lock NOT authenticated                                                                             │
+│ 9  │ MITM tamper M5.Auth_U                          │ BLOCKED │ REJECTED: Auth_U invalid → user did not prove knowledge of SK                                                                       │
+│ 10 │ MITM leaves no lasting damage                  │ BLOCKED │ genuine user still logs in: UNLOCKED                                                                                                │
+│ 11 │ impersonate user (observed TID, guessed A)     │ BLOCKED │ AS rejected: C1 failed AES-GCM verification (wrong A / tampered M1) — failed_attempts=1/5                                           │
+│ 12 │ impersonate user (invented TID)                │ BLOCKED │ AS rejected: unknown TID (not a current or previous pseudonym)                                                                      │
+│ 13 │ impersonate AS+DL to the user (forged M4)      │ BLOCKED │ REJECTED: C_U failed AES-GCM verification → AS NOT authenticated                                                                    │
+│ 14 │ impersonate AS to the door (forged M3)         │ BLOCKED │ REJECTED: C_DL failed AES-GCM verification → AS not authenticated                                                                   │
+│ 15 │ stolen smart device: offline password guessing │ BLOCKED │ 43 candidates pass V, transcript confirms none                                                                                      │
+│ 16 │ online password guessing                       │ BLOCKED │ account locked after 5 failures; right password then refused                                                                        │
+│ 17 │ old card + known password after re-issue       │ BLOCKED │ AS rejected: C1 failed AES-GCM verification (wrong A / tampered M1) — failed_attempts=1/5                                           │
+│ 18 │ desynchronization (drop M4 twice)              │ BLOCKED │ next login used TID_old and succeeded (UNLOCKED); AS issued a fresh TID_new                                                         │
+│ 19 │ insider reads AS database                      │ BLOCKED │ DB has no PW/RPW/A; forging with DB data → AS rejected: C1 failed AES-GCM verification (wrong A / tampered M1) —                    │
+│    │                                                │         │ failed_attempts=1/5                                                                                                                 │
+│ 20 │ door compromise: pose as CSE-102               │ BLOCKED │ Tag2 invalid: M2 not from door lock CSE-102 or M1/M2 modified                                                                       │
+│ 21 │ door compromise: derive other door keys        │ BLOCKED │ K_DL(CSE-102) independent of K_DL(CSE-101); CSE-102 keeps working (UNLOCKED)                                                        │
+│ 22 │ traceability (link two sessions / learn ID_U)  │ BLOCKED │ TID rotates every session, ID_U only inside C1 — sessions unlinkable                                                                │
+│ 23 │ audit log tampering                            │ BLOCKED │ verify_log flags line 4                                                                                                             │
+└────┴────────────────────────────────────────────────┴─────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+23/23 attacks blocked
+```
+
+Without `--fast`, the demo adds a 24th check, replaying M1 after ΔT has expired, which is rejected as a stale
+timestamp. The candidate count in row 15 varies between runs because each card gets a fresh random `r`, which changes
+which dictionary words pass the fuzzy verifier.
 
 `attacker_proxy.py` modes: `pass`, `record`, `tamper --msg M --field F`, `drop --msg M`, `forge` (library only),
 and `replay --capture FILE`.
 
 ---
 
-## 7. Formal verification (ProVerif)
+## 9. Formal verification (ProVerif)
 
 Files: [formal/door_lock.pv](formal/door_lock.pv) (main model),
 [formal/guessing_stolen_card.pv](formal/guessing_stolen_card.pv) and
@@ -236,7 +381,7 @@ models. Its ≈ 1/n0 false-accept behaviour is shown empirically by `stolen_card
 
 ---
 
-## 8. Performance
+## 10. Performance
 
 `make bench` times every primitive (1000 runs, `benchmarks/primitive_timing.csv`). It then writes
 [benchmarks/results.md](benchmarks/results.md) with the per-entity computation cost (symbolic and ms), the per-message
@@ -270,7 +415,7 @@ because the door relays M1 inside M2.
 
 ---
 
-## 9. Known limitations
+## 11. Known limitations
 
 - **Lockout is a DoS lever.** Anyone who has seen a user's `TID` can send 5 bad M1s and lock the account until an admin runs `revoke_user --reset-lockout` or re-issues the card. This is inherent to any lockout counter.
 - **Forced desync links sessions.** If the attacker keeps dropping M4, the user reuses the same `TID` and those sessions are linkable.
@@ -279,7 +424,7 @@ because the door relays M1 inside M2.
 - **Compromised door scope.** A compromised door can act as *that* door and read `SK` for sessions at *that* door. It learns nothing about `A`, `x` or other doors.
 - **Simulation only.** No hardware is involved. Policy times use the AS host's local time zone.
 
-## 10. Project structure
+## 12. Project structure
 
 ```
 common/      crypto_utils (only place crypto is called), protocol formulas, encoding, messages, net framing,
